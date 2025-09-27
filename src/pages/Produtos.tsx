@@ -1,4 +1,4 @@
-import { DashboardLayout } from "../components/layout/DashboardLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import {
   Search, 
   Filter,
   ClipboardList,
-  Wrench
+  Wrench,
+  Trash2
 } from "lucide-react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -28,12 +30,25 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
+// Componente do Modal da Ficha Técnica
 const FichaTecnicaDialog = ({ product }: { product: any }) => {
-    // Busca os materiais
+    const queryClient = useQueryClient();
+    const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null);
+    const [quantity, setQuantity] = useState<number | string>(1);
+
+    // Busca os materiais disponíveis para adicionar
     const { data: materials } = useQuery({
         queryKey: ["materials"],
         queryFn: async () => {
@@ -43,21 +58,68 @@ const FichaTecnicaDialog = ({ product }: { product: any }) => {
         },
     });
 
-    // Busca a ficha técnica (bill of materials) para este produto específico
+    // Busca a ficha técnica (bill of materials) para este produto
     const { data: bom, isLoading: isLoadingBom } = useQuery({
         queryKey: ["bill_of_materials", product.id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("bill_of_materials")
-                .select(`
-                    *,
-                    materials (name, unit)
-                `)
+                .select(`*, materials (name, unit)`)
                 .eq("product_id", product.id);
             if (error) throw new Error(error.message);
             return data;
         }
     });
+    
+    // Mutação para ADICIONAR um material
+    const addMaterialMutation = useMutation({
+        mutationFn: async ({ material_id, quantity_required }: { material_id: string, quantity_required: number }) => {
+            const { data, error } = await supabase
+                .from("bill_of_materials")
+                .insert([{ 
+                    product_id: product.id, 
+                    material_id, 
+                    quantity_required,
+                    tenant_id: product.tenant_id // Assumindo que o tenant_id está no produto
+                }]);
+            if (error) throw new Error(error.message);
+            return data;
+        },
+        onSuccess: () => {
+            toast({ title: "Sucesso!", description: "Material adicionado à ficha técnica." });
+            queryClient.invalidateQueries({ queryKey: ["bill_of_materials", product.id] });
+            queryClient.invalidateQueries({ queryKey: ["products"] }); // Para atualizar a contagem
+            setSelectedMaterial(null);
+            setQuantity(1);
+        },
+        onError: (error) => {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+        }
+    });
+
+    // Mutação para REMOVER um material
+    const removeMaterialMutation = useMutation({
+        mutationFn: async (bomId: string) => {
+             const { error } = await supabase.from('bill_of_materials').delete().eq('id', bomId);
+             if (error) throw new Error(error.message);
+        },
+        onSuccess: () => {
+            toast({ title: "Sucesso!", description: "Material removido." });
+            queryClient.invalidateQueries({ queryKey: ["bill_of_materials", product.id] });
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+        },
+        onError: (error) => {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+        }
+    });
+
+    const handleAddMaterial = () => {
+        if (!selectedMaterial || !quantity) {
+            toast({ title: "Atenção", description: "Selecione um material e informe a quantidade.", variant: "destructive" });
+            return;
+        }
+        addMaterialMutation.mutate({ material_id: selectedMaterial, quantity_required: Number(quantity) });
+    };
 
     return (
         <Dialog>
@@ -73,7 +135,7 @@ const FichaTecnicaDialog = ({ product }: { product: any }) => {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label>Materiais</Label>
+                        <Label>Materiais Utilizados</Label>
                         <div className="p-4 border rounded-lg space-y-2 min-h-[100px]">
                             {isLoadingBom ? <p>Carregando...</p> : 
                                 bom && bom.length > 0 ? bom.map((item: any) => (
@@ -82,7 +144,9 @@ const FichaTecnicaDialog = ({ product }: { product: any }) => {
                                         <div className="flex items-center gap-2">
                                             <Input type="number" defaultValue={item.quantity_required} className="w-24 h-8" />
                                             <span className="text-sm text-muted-foreground">{item.materials?.unit}</span>
-                                            <Button variant="destructive" size="sm">Remover</Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeMaterialMutation.mutate(item.id)}>
+                                                <Trash2 className="w-4 h-4 text-destructive"/>
+                                            </Button>
                                         </div>
                                     </div>
                                 )) : <p className="text-sm text-muted-foreground">Nenhum material adicionado.</p>
@@ -90,24 +154,30 @@ const FichaTecnicaDialog = ({ product }: { product: any }) => {
                         </div>
                     </div>
                      <div className="space-y-2">
-                        <Label>Adicionar Material</Label>
+                        <Label>Adicionar Novo Material</Label>
                         <div className="flex gap-2">
-                            <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                                <option disabled selected>Selecione um material</option>
-                                {materials?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                            </select>
-                            <Input type="number" placeholder="Qtd" className="w-24" />
-                            <Button>Adicionar</Button>
+                            <Select onValueChange={(value) => setSelectedMaterial(value)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um material" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {materials?.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Input type="number" placeholder="Qtd" className="w-24" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                            <Button onClick={handleAddMaterial} disabled={addMaterialMutation.isPending}>
+                                {addMaterialMutation.isPending ? "Adicionando..." : "Adicionar"}
+                            </Button>
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
                          <Button type="button" variant="secondary">
-                            Cancelar
+                            Fechar
                         </Button>
                     </DialogClose>
-                    <Button type="submit">Salvar Ficha Técnica</Button>
+                    <Button type="submit">Salvar Alterações</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
