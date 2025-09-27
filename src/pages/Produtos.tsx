@@ -2,16 +2,16 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
   Search, 
   Filter,
-  ClipboardList,
-  Wrench,
-  Trash2
+  Trash2,
+  ListPlus,
+  Edit
 } from "lucide-react";
-import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -25,203 +25,139 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import { AddProductDialog } from "@/components/forms/AddProductForm";
 
-// Componente do Modal da Ficha Técnica
-const FichaTecnicaDialog = ({ product }: { product: any }) => {
+
+const Produtos = () => {
     const queryClient = useQueryClient();
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null);
-    const [quantity, setQuantity] = useState<number | string>(1);
+    const [quantity, setQuantity] = useState<number>(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Busca os materiais disponíveis para adicionar
-    const { data: materials } = useQuery({
+    // Fetch products
+    const { data: products, isLoading: isLoadingProducts } = useQuery({
+        queryKey: ["products"],
+        queryFn: async () => {
+            const { data, error } = await supabase.from("products").select("*");
+            if (error) throw error;
+            return data;
+        },
+    });
+
+    // Fetch bill of materials for the selected product
+    const { data: billOfMaterials, isLoading: isLoadingBOM } = useQuery({
+        queryKey: ["billOfMaterials", selectedProduct?.id],
+        queryFn: async () => {
+            if (!selectedProduct) return [];
+            const { data, error } = await supabase
+                .from("bill_of_materials")
+                .select(`*, materials (*)`)
+                .eq("product_id", selectedProduct.id);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedProduct,
+    });
+
+    // Fetch all materials for the dropdown
+    const { data: materials, isLoading: isLoadingMaterials } = useQuery({
         queryKey: ["materials"],
         queryFn: async () => {
             const { data, error } = await supabase.from("materials").select("*");
-            if (error) throw new Error(error.message);
+            if (error) throw error;
             return data;
         },
     });
 
-    // Busca a ficha técnica (bill of materials) para este produto
-    const { data: bom, isLoading: isLoadingBom } = useQuery({
-        queryKey: ["bill_of_materials", product.id],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from("bill_of_materials")
-                .select(`*, materials (name, unit)`)
-                .eq("product_id", product.id);
-            if (error) throw new Error(error.message);
-            return data;
-        }
-    });
-    
-    // Mutação para ADICIONAR um material
+    // Mutation to add a material
     const addMaterialMutation = useMutation({
-        mutationFn: async ({ material_id, quantity_required }: { material_id: string, quantity_required: number }) => {
-            const { data, error } = await supabase
-                .from("bill_of_materials")
-                .insert([{ 
-                    product_id: product.id, 
-                    material_id, 
-                    quantity_required,
-                    tenant_id: product.tenant_id // Assumindo que o tenant_id está no produto
-                }]);
-            if (error) throw new Error(error.message);
-            return data;
+        mutationFn: async ({ productId, materialId, quantity }: { productId: string, materialId: string, quantity: number }) => {
+            const { error } = await supabase.from("bill_of_materials").insert([{ product_id: productId, material_id: materialId, quantity_required: quantity }]);
+            if (error) throw error;
         },
         onSuccess: () => {
             toast({ title: "Sucesso!", description: "Material adicionado à ficha técnica." });
-            queryClient.invalidateQueries({ queryKey: ["bill_of_materials", product.id] });
-            queryClient.invalidateQueries({ queryKey: ["products"] }); // Para atualizar a contagem
-            setSelectedMaterial(null);
-            setQuantity(1);
+            queryClient.invalidateQueries({ queryKey: ["billOfMaterials", selectedProduct?.id] });
         },
         onError: (error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+             toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
     });
 
-    // Mutação para REMOVER um material
+    // Mutation to remove a material
     const removeMaterialMutation = useMutation({
-        mutationFn: async (bomId: string) => {
-             const { error } = await supabase.from('bill_of_materials').delete().eq('id', bomId);
-             if (error) throw new Error(error.message);
+         mutationFn: async (bomId: string) => {
+            const { error } = await supabase.from("bill_of_materials").delete().eq("id", bomId);
+            if (error) throw error;
         },
         onSuccess: () => {
-            toast({ title: "Sucesso!", description: "Material removido." });
-            queryClient.invalidateQueries({ queryKey: ["bill_of_materials", product.id] });
-            queryClient.invalidateQueries({ queryKey: ["products"] });
+            toast({ title: "Sucesso!", description: "Material removido da ficha técnica." });
+            queryClient.invalidateQueries({ queryKey: ["billOfMaterials", selectedProduct?.id] });
         },
         onError: (error) => {
-            toast({ title: "Erro", description: error.message, variant: "destructive" });
+             toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
     });
 
-    const handleAddMaterial = () => {
-        if (!selectedMaterial || !quantity) {
-            toast({ title: "Atenção", description: "Selecione um material e informe a quantidade.", variant: "destructive" });
-            return;
-        }
-        addMaterialMutation.mutate({ material_id: selectedMaterial, quantity_required: Number(quantity) });
+    const handleOpenModal = (product: any) => {
+        setSelectedProduct(product);
+        setIsModalOpen(true);
     };
 
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                    <ClipboardList className="w-4 h-4" />
-                    Ver/Editar
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle>Ficha Técnica: {product.name}</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Materiais Utilizados</Label>
-                        <div className="p-4 border rounded-lg space-y-2 min-h-[100px]">
-                            {isLoadingBom ? <p>Carregando...</p> : 
-                                bom && bom.length > 0 ? bom.map((item: any) => (
-                                    <div key={item.id} className="flex items-center justify-between">
-                                        <p className="text-sm">{item.materials?.name}</p>
-                                        <div className="flex items-center gap-2">
-                                            <Input type="number" defaultValue={item.quantity_required} className="w-24 h-8" />
-                                            <span className="text-sm text-muted-foreground">{item.materials?.unit}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeMaterialMutation.mutate(item.id)}>
-                                                <Trash2 className="w-4 h-4 text-destructive"/>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )) : <p className="text-sm text-muted-foreground">Nenhum material adicionado.</p>
-                            }
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Adicionar Novo Material</Label>
-                        <div className="flex gap-2">
-                            <Select onValueChange={(value) => setSelectedMaterial(value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione um material" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {materials?.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <Input type="number" placeholder="Qtd" className="w-24" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-                            <Button onClick={handleAddMaterial} disabled={addMaterialMutation.isPending}>
-                                {addMaterialMutation.isPending ? "Adicionando..." : "Adicionar"}
-                            </Button>
-                        </div>
-                    </div>
+    const handleAddMaterial = () => {
+        if (selectedProduct && selectedMaterial && quantity > 0) {
+            addMaterialMutation.mutate({ productId: selectedProduct.id, materialId: selectedMaterial, quantity });
+            setSelectedMaterial(null);
+            setQuantity(1);
+        } else {
+             toast({ title: "Atenção", description: "Selecione um material e defina a quantidade.", variant: "destructive" });
+        }
+    };
+    
+    if (isLoadingProducts) {
+        return (
+             <DashboardLayout>
+                <div className="space-y-6 animate-pulse">
+                    <div className="h-8 bg-muted rounded w-1/3"></div>
+                    <div className="h-96 bg-muted rounded-lg"></div>
                 </div>
-                <DialogFooter>
-                    <DialogClose asChild>
-                         <Button type="button" variant="secondary">
-                            Fechar
-                        </Button>
-                    </DialogClose>
-                    <Button type="submit">Salvar Alterações</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-const Produtos = () => {
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-        const { data, error } = await supabase
-            .from("products")
-            .select(`
-                *,
-                bill_of_materials (count)
-            `);
-        if (error) throw new Error(error.message);
-        return data;
-    },
-  });
+            </DashboardLayout>
+        )
+    }
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold">Produtos</h1>
+            <h1 className="text-3xl font-bold">Catálogo de Produtos</h1>
             <p className="text-muted-foreground">
-              Cadastre produtos e gerencie suas fichas técnicas.
+              Gerencie seus produtos e suas fichas técnicas
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Adicionar Produto
-          </Button>
+          <AddProductDialog />
         </div>
 
-        {/* Search and Filters */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Catálogo de Produtos</CardTitle>
-              <div className="flex gap-2">
+              <CardTitle>Produtos Cadastrados</CardTitle>
+               <div className="flex gap-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder="Buscar produtos..." className="pl-10 w-64" />
@@ -234,60 +170,105 @@ const Produtos = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
+             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Custo Base</TableHead>
-                  <TableHead className="text-right">Preço Venda</TableHead>
-                  <TableHead>Ficha Técnica</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-right">Preço de Venda</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? Array.from({ length: 3 }).map((_, index) => (
-                    <TableRow key={index}>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
-                    </TableRow>
-                )) : products?.map((product) => {
-                    const materials_count = product.bill_of_materials[0]?.count || 0;
-                    return (
-                        <TableRow key={product.id}>
-                            <TableCell className="font-mono text-sm">{product.sku}</TableCell>
-                            <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell>
-                                <Badge variant="outline">{product.category}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">R$ {(product.base_cost || 0).toFixed(2)}</TableCell>
-                            <TableCell className="text-right font-medium">R$ {product.sale_price.toFixed(2)}</TableCell>
-                            <TableCell>
-                                <Badge variant={materials_count > 0 ? "default" : "secondary"}>
-                                {materials_count} materiais
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex gap-2 justify-end">
-                                    <FichaTecnicaDialog product={product} />
-                                    <Button variant="ghost" size="sm">
-                                        <Wrench className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    );
-                })}
+                {products?.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-mono text-sm">{product.sku}</TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell className="text-right">R$ {(product.base_cost || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">R$ {(product.sale_price || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => handleOpenModal(product)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Ver/Editar Ficha Técnica
+                        </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Ficha Técnica: {selectedProduct?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <h4 className="font-medium">Materiais Necessários</h4>
+                    {isLoadingBOM ? <p>A carregar materiais...</p> : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Material</TableHead>
+                                    <TableHead>Quantidade</TableHead>
+                                    <TableHead>Unidade</TableHead>
+                                    <TableHead>Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {billOfMaterials?.map((bom: any) => (
+                                <TableRow key={bom.id}>
+                                    <TableCell>{bom.materials?.name}</TableCell>
+                                    <TableCell>{bom.quantity_required}</TableCell>
+                                    <TableCell>{bom.materials?.unit}</TableCell>
+                                    <TableCell>
+                                        <Button variant="ghost" size="icon" onClick={() => removeMaterialMutation.mutate(bom.id)}>
+                                            <Trash2 className="w-4 h-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                     <div className="space-y-2 pt-4 border-t">
+                        <h4 className="font-medium flex items-center gap-2"><ListPlus className="w-4 h-4" /> Adicionar Material</h4>
+                         <div className="flex items-end gap-2">
+                             <div className="flex-1">
+                                <Label>Material</Label>
+                                 <Select onValueChange={setSelectedMaterial} value={selectedMaterial || ''}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione um material" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {isLoadingMaterials ? <SelectItem value="loading" disabled>A carregar...</SelectItem> :
+                                        materials?.map((material: any) => (
+                                            <SelectItem key={material.id} value={material.id}>{material.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Quantidade</Label>
+                                <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} className="w-24" />
+                            </div>
+                            <Button onClick={handleAddMaterial} disabled={addMaterialMutation.isPending}>
+                                {addMaterialMutation.isPending ? "A adicionar..." : "Adicionar"}
+                            </Button>
+                         </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Fechar</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
