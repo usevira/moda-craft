@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AddSaleModal } from "@/components/sales/AddSaleModal";
 import { 
   Plus, 
   ShoppingCart,
@@ -121,10 +122,7 @@ const Vendas = () => {
               <Package className="w-4 h-4" />
               Nova Consignação
             </Button>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Venda
-            </Button>
+          <AddSaleModal />
           </div>
         </div>
 

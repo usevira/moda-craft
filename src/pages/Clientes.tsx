@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AddCustomerModal } from "@/components/customers/AddCustomerModal";
 import { 
   Plus, 
   Search,
@@ -104,10 +105,7 @@ const Clientes = () => {
               Controle de relacionamento com clientes e vendedores
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Cliente
-          </Button>
+          <AddCustomerModal />
         </div>
 
         {/* Summary Cards */}

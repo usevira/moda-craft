@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AddInventoryModal } from "@/components/inventory/AddInventoryModal";
 import { 
   Plus, 
   Search, 
@@ -105,10 +106,7 @@ const Estoque = () => {
               Controle completo do seu inventário
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Adicionar Produto
-          </Button>
+          <AddInventoryModal />
         </div>
 
         {/* Summary Cards */}

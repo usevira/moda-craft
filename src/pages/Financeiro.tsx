@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AddTransactionModal } from "@/components/financial/AddTransactionModal";
 import { 
   Plus, 
   DollarSign,
@@ -120,10 +121,7 @@ const Financeiro = () => {
               <Calendar className="w-4 h-4" />
               Relatórios
             </Button>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Transação
-            </Button>
+          <AddTransactionModal />
           </div>
         </div>
 

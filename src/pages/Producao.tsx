@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { AddBatchModal } from "@/components/production/AddBatchModal";
 import { 
   Plus, 
   Factory,
@@ -110,10 +111,7 @@ const Producao = () => {
               Controle de lotes e processos produtivos
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Lote
-          </Button>
+          <AddBatchModal />
         </div>
 
         {/* Summary Cards */}
