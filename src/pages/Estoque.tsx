@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AddInventoryModal } from "@/components/inventory/AddInventoryModal";
 import { 
   Plus, 
   Search, 
@@ -20,80 +19,60 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const mockInventory = [
-  {
-    id: "1",
-    sku: "CAM-001-P-PR",
-    produto: "Camiseta Básica",
-    cor: "Preta",
-    tamanho: "P",
-    quantidade: 45,
-    reservado: 5,
-    disponivel: 40,
-    custoUnitario: 12.50,
-    precoVenda: 35.00,
-    status: "normal"
-  },
-  {
-    id: "2", 
-    sku: "CAM-001-M-BR",
-    produto: "Camiseta Básica",
-    cor: "Branca",
-    tamanho: "M",
-    quantidade: 8,
-    reservado: 2,
-    disponivel: 6,
-    custoUnitario: 12.50,
-    precoVenda: 35.00,
-    status: "baixo"
-  },
-  {
-    id: "3",
-    sku: "VES-002-G-AZ",
-    produto: "Vestido Verão",
-    cor: "Azul",
-    tamanho: "G",
-    quantidade: 0,
-    reservado: 0,
-    disponivel: 0,
-    custoUnitario: 25.00,
-    precoVenda: 89.00,
-    status: "zerado"
-  },
-  {
-    id: "4",
-    sku: "CAL-003-M-JE",
-    produto: "Calça Jeans",
-    cor: "Jeans",
-    tamanho: "M",
-    quantidade: 23,
-    reservado: 1,
-    disponivel: 22,
-    custoUnitario: 45.00,
-    precoVenda: 120.00,
-    status: "normal"
+const getStatusBadge = (quantity: number | null) => {
+  const stock = quantity || 0;
+  if (stock === 0) {
+    return <Badge className="bg-destructive/20 text-destructive">Zerado</Badge>;
   }
-];
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "normal":
-      return <Badge className="bg-success/20 text-success">Normal</Badge>;
-    case "baixo":
-      return <Badge className="bg-warning/20 text-warning">Baixo</Badge>;
-    case "zerado":
-      return <Badge className="bg-destructive/20 text-destructive">Zerado</Badge>;
-    default:
-      return <Badge variant="outline">-</Badge>;
+  if (stock > 0 && stock <= 5) { // Assuming 5 is the low stock threshold
+    return <Badge className="bg-warning/20 text-warning">Baixo</Badge>;
   }
+  return <Badge className="bg-success/20 text-success">Normal</Badge>;
 };
 
 const Estoque = () => {
-  const totalItens = mockInventory.reduce((acc, item) => acc + item.quantidade, 0);
-  const itensBaixo = mockInventory.filter(item => item.status === "baixo").length;
-  const itensZerados = mockInventory.filter(item => item.status === "zerado").length;
-  const valorTotal = mockInventory.reduce((acc, item) => acc + (item.quantidade * item.custoUnitario), 0);
+  const { data: inventory, isLoading } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory")
+        .select(`
+          *,
+          products (*)
+        `);
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const totalItens = inventory?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
+  const itensBaixo = inventory?.filter(item => (item.quantity || 0) > 0 && (item.quantity || 0) <= 5).length || 0;
+  const itensZerados = inventory?.filter(item => (item.quantity || 0) === 0).length || 0;
+  const valorTotal = inventory?.reduce((acc, item) => {
+    const cost = item.products?.base_cost || 0;
+    const quantity = item.quantity || 0;
+    return acc + (quantity * cost);
+  }, 0) || 0;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="grid gap-6 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-muted rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-96 bg-muted rounded-lg"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -106,7 +85,10 @@ const Estoque = () => {
               Controle completo do seu inventário
             </p>
           </div>
-          <AddInventoryModal />
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            Adicionar Item ao Estoque
+          </Button>
         </div>
 
         {/* Summary Cards */}
@@ -151,7 +133,7 @@ const Estoque = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Valor Total</p>
+                  <p className="text-sm font-medium text-muted-foreground">Valor de Custo Total</p>
                   <p className="text-2xl font-bold">R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 </div>
                 <Package className="w-8 h-8 text-success" />
@@ -185,37 +167,26 @@ const Estoque = () => {
                   <TableHead>Produto</TableHead>
                   <TableHead>Cor/Tamanho</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
-                  <TableHead className="text-right">Disponível</TableHead>
                   <TableHead className="text-right">Custo Unit.</TableHead>
                   <TableHead className="text-right">Preço Venda</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockInventory.map((item) => (
+                {inventory?.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                    <TableCell className="font-medium">{item.produto}</TableCell>
+                    <TableCell className="font-mono text-sm">{item.products?.sku || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">{item.products?.name || 'Produto não encontrado'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">{item.cor}</span>
-                        <Badge variant="outline" className="text-xs">{item.tamanho}</Badge>
+                        <span className="text-sm">{item.color}</span>
+                        <Badge variant="outline" className="text-xs">{item.size}</Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div>
-                        <span className="font-medium">{item.quantidade}</span>
-                        {item.reservado > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            ({item.reservado} reservado)
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{item.disponivel}</TableCell>
-                    <TableCell className="text-right">R$ {item.custoUnitario.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-medium">R$ {item.precoVenda.toFixed(2)}</TableCell>
-                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell className="text-right font-medium">{item.quantity}</TableCell>
+                    <TableCell className="text-right">R$ {(item.products?.base_cost || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">R$ {(item.products?.sale_price || 0).toFixed(2)}</TableCell>
+                    <TableCell>{getStatusBadge(item.quantity)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -228,3 +199,4 @@ const Estoque = () => {
 };
 
 export default Estoque;
+
