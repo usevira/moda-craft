@@ -12,6 +12,7 @@ import Relatorios from "./pages/Relatorios";
 import Clientes from "./pages/Clientes";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
+import Produtos from "./pages/Produtos";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/produtos" element={<Produtos />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/producao" element={<Producao />} />
           <Route path="/vendas" element={<Vendas />} />
@@ -39,3 +41,4 @@ const App = () => (
 );
 
 export default App;
+
