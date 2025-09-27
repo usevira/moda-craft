@@ -29,6 +29,17 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -150,7 +161,7 @@ const Produtos = () => {
               Gerencie seus produtos e suas fichas técnicas
             </p>
           </div>
-          <AddProductDialog />
+          <AddProductDialog onProductAdded={() => queryClient.invalidateQueries({ queryKey: ['products'] })} />
         </div>
 
         <Card>
@@ -187,8 +198,8 @@ const Produtos = () => {
                     <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell className="text-right">R$ {(product.base_cost || 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-medium">R$ {(product.sale_price || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {(product.base_cost ?? 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">R$ {(product.sale_price ?? 0).toFixed(2)}</TableCell>
                     <TableCell>
                         <Button variant="outline" size="sm" onClick={() => handleOpenModal(product)}>
                             <Edit className="w-4 h-4 mr-2" />
@@ -226,9 +237,27 @@ const Produtos = () => {
                                     <TableCell>{bom.quantity_required}</TableCell>
                                     <TableCell>{bom.materials?.unit}</TableCell>
                                     <TableCell>
-                                        <Button variant="ghost" size="icon" onClick={() => removeMaterialMutation.mutate(bom.id)}>
-                                            <Trash2 className="w-4 h-4 text-destructive" />
-                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta ação não pode ser desfeita. Isto irá remover permanentemente o material da ficha técnica.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => removeMaterialMutation.mutate(bom.id)}>
+                                                        Remover
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </TableCell>
                                 </TableRow>
                                 ))}
