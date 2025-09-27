@@ -8,7 +8,7 @@ import {
   Settings,
   BarChart3
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 import {
   Sidebar,
@@ -25,6 +25,7 @@ import {
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Produtos", url: "/produtos", icon: Package },
   { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Produção", url: "/producao", icon: Factory },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
@@ -39,7 +40,6 @@ const managementItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const location = useLocation();
 
   return (
     <Sidebar className={state === "collapsed" ? "w-16" : "w-64"} collapsible="icon">
@@ -64,14 +64,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                   <NavLink to={item.url} end>
-                      {({ isActive }) => (
-                        <SidebarMenuButton isActive={isActive || (item.url !== "/" && location.pathname.startsWith(item.url))}>
-                          <item.icon className="w-4 h-4" />
-                          {state === "expanded" && <span>{item.title}</span>}
-                        </SidebarMenuButton>
-                      )}
-                    </NavLink>
+                  <NavLink to={item.url} end>
+                    {({ isActive }) => (
+                      <SidebarMenuButton isActive={isActive} className="w-full">
+                        <item.icon className="w-4 h-4" />
+                        {state === "expanded" && <span>{item.title}</span>}
+                      </SidebarMenuButton>
+                    )}
+                  </NavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -84,9 +84,9 @@ export function AppSidebar() {
             <SidebarMenu>
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <NavLink to={item.url}>
+                  <NavLink to={item.url} end>
                     {({ isActive }) => (
-                      <SidebarMenuButton isActive={isActive}>
+                      <SidebarMenuButton isActive={isActive} className="w-full">
                         <item.icon className="w-4 h-4" />
                         {state === "expanded" && <span>{item.title}</span>}
                       </SidebarMenuButton>
