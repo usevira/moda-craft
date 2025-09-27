@@ -48,18 +48,16 @@ export function AppSidebar() {
     }`;
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-16" : "w-64"} collapsible="icon">
+    <Sidebar className="w-64" collapsible="icon">
       <SidebarHeader className="border-b border-border">
         <div className="flex items-center gap-3 px-4 py-4">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-hover rounded-lg flex items-center justify-center">
             <Factory className="w-4 h-4 text-primary-foreground" />
           </div>
-          {state === "expanded" && (
-            <div>
-              <h2 className="text-lg font-semibold">Fashion ERP</h2>
-              <p className="text-xs text-muted-foreground">Gestão Completa</p>
-            </div>
-          )}
+          <div>
+            <h2 className="text-lg font-semibold">Fashion ERP</h2>
+            <p className="text-xs text-muted-foreground">Gestão Completa</p>
+          </div>
         </div>
       </SidebarHeader>
 
@@ -73,7 +71,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className={getNavClassName}>
                       <item.icon className="w-4 h-4" />
-                      {state === "expanded" && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -91,7 +89,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavClassName}>
                       <item.icon className="w-4 h-4" />
-                      {state === "expanded" && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
