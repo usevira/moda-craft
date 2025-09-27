@@ -6,7 +6,8 @@ import {
   DollarSign, 
   Users, 
   Settings,
-  BarChart3
+  BarChart3,
+  ClipboardList // Adicionado ícone para Produtos
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -25,7 +26,7 @@ import {
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Produtos", url: "/produtos", icon: Package },
+  { title: "Produtos", url: "/produtos", icon: ClipboardList }, // Adicionado item Produtos
   { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Produção", url: "/producao", icon: Factory },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
@@ -66,7 +67,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <NavLink to={item.url} end>
                     {({ isActive }) => (
-                      <SidebarMenuButton isActive={isActive} className="w-full">
+                      <SidebarMenuButton isActive={isActive} tooltip={state === 'collapsed' ? item.title : undefined}>
                         <item.icon className="w-4 h-4" />
                         {state === "expanded" && <span>{item.title}</span>}
                       </SidebarMenuButton>
@@ -84,9 +85,9 @@ export function AppSidebar() {
             <SidebarMenu>
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <NavLink to={item.url} end>
+                   <NavLink to={item.url} end>
                     {({ isActive }) => (
-                      <SidebarMenuButton isActive={isActive} className="w-full">
+                      <SidebarMenuButton isActive={isActive} tooltip={state === 'collapsed' ? item.title : undefined}>
                         <item.icon className="w-4 h-4" />
                         {state === "expanded" && <span>{item.title}</span>}
                       </SidebarMenuButton>
