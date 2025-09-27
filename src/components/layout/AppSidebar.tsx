@@ -8,7 +8,7 @@ import {
   Settings,
   BarChart3
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 import {
   Sidebar,
@@ -39,25 +39,21 @@ const managementItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
-
-  const getNavClassName = ({ isActive }: { isActive: boolean }) =>
-    `flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-      isActive 
-        ? "bg-primary text-primary-foreground font-medium" 
-        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-    }`;
+  const location = useLocation();
 
   return (
-    <Sidebar className="w-64" collapsible="icon">
+    <Sidebar className={state === "collapsed" ? "w-16" : "w-64"} collapsible="icon">
       <SidebarHeader className="border-b border-border">
         <div className="flex items-center gap-3 px-4 py-4">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-hover rounded-lg flex items-center justify-center">
             <Factory className="w-4 h-4 text-primary-foreground" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">Fashion ERP</h2>
-            <p className="text-xs text-muted-foreground">Gestão Completa</p>
-          </div>
+          {state === "expanded" && (
+            <div>
+              <h2 className="text-lg font-semibold">Fashion ERP</h2>
+              <p className="text-xs text-muted-foreground">Gestão Completa</p>
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
@@ -68,12 +64,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavClassName}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                   <NavLink to={item.url} end>
+                      {({ isActive }) => (
+                        <SidebarMenuButton isActive={isActive || (item.url !== "/" && location.pathname.startsWith(item.url))}>
+                          <item.icon className="w-4 h-4" />
+                          {state === "expanded" && <span>{item.title}</span>}
+                        </SidebarMenuButton>
+                      )}
                     </NavLink>
-                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -86,12 +84,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
+                  <NavLink to={item.url}>
+                    {({ isActive }) => (
+                      <SidebarMenuButton isActive={isActive}>
+                        <item.icon className="w-4 h-4" />
+                        {state === "expanded" && <span>{item.title}</span>}
+                      </SidebarMenuButton>
+                    )}
+                  </NavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -101,3 +101,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
