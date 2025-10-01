@@ -59,7 +59,7 @@ export const AddProductForm = ({ setOpen }: { setOpen: (open: boolean) => void }
             if (!userId) {
                 throw new Error("Utilizador não autenticado.");
             }
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("products")
                 .insert([{ ...newProduct, tenant_id: userId }])
                 .select();

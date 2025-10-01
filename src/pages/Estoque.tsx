@@ -37,7 +37,7 @@ const Estoque = () => {
   const { data: inventory, isLoading } = useQuery({
     queryKey: ["inventory"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("inventory")
         .select(`
           *,
@@ -53,7 +53,7 @@ const Estoque = () => {
   const itensBaixo = inventory?.filter(item => (item.quantity || 0) > 0 && (item.quantity || 0) <= 5).length || 0;
   const itensZerados = inventory?.filter(item => (item.quantity || 0) === 0).length || 0;
   const valorTotal = inventory?.reduce((acc, item) => {
-    const cost = item.products?.base_cost || 0;
+    const cost = (item.products as any)?.base_cost || 0;
     const quantity = item.quantity || 0;
     return acc + (quantity * cost);
   }, 0) || 0;
@@ -175,8 +175,8 @@ const Estoque = () => {
               <TableBody>
                 {inventory?.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">{item.products?.sku || 'N/A'}</TableCell>
-                    <TableCell className="font-medium">{item.products?.name || 'Produto não encontrado'}</TableCell>
+                    <TableCell className="font-mono text-sm">{(item.products as any)?.sku || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">{(item.products as any)?.name || 'Produto não encontrado'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{item.color}</span>
@@ -184,8 +184,8 @@ const Estoque = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">{item.quantity}</TableCell>
-                    <TableCell className="text-right">R$ {(item.products?.base_cost || 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-medium">R$ {(item.products?.sale_price || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">R$ {((item.products as any)?.base_cost || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-medium">R$ {((item.products as any)?.sale_price || 0).toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(item.quantity)}</TableCell>
                   </TableRow>
                 ))}

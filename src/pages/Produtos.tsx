@@ -64,7 +64,7 @@ const Produtos = () => {
     const { data: products, isLoading: isLoadingProducts } = useQuery({
         queryKey: ["products"],
         queryFn: async () => {
-            const { data, error } = await supabase.from("products").select("*");
+            const { data, error } = await (supabase as any).from("products").select("*");
             if (error) throw error;
             return data;
         },
@@ -75,7 +75,7 @@ const Produtos = () => {
         queryKey: ["billOfMaterials", selectedProduct?.id],
         queryFn: async () => {
             if (!selectedProduct) return [];
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("bill_of_materials")
                 .select(`*, materials (*)`)
                 .eq("product_id", selectedProduct.id);
@@ -98,7 +98,7 @@ const Produtos = () => {
     // Mutation to add a material
     const addMaterialMutation = useMutation({
         mutationFn: async ({ productId, materialId, quantity }: { productId: string, materialId: string, quantity: number }) => {
-            const { error } = await supabase.from("bill_of_materials").insert([{ product_id: productId, material_id: materialId, quantity_required: quantity }]);
+            const { error } = await (supabase as any).from("bill_of_materials").insert([{ product_id: productId, material_id: materialId, quantity_required: quantity }]);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -113,7 +113,7 @@ const Produtos = () => {
     // Mutation to remove a material
     const removeMaterialMutation = useMutation({
          mutationFn: async (bomId: string) => {
-            const { error } = await supabase.from("bill_of_materials").delete().eq("id", bomId);
+            const { error } = await (supabase as any).from("bill_of_materials").delete().eq("id", bomId);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -161,7 +161,7 @@ const Produtos = () => {
               Gerencie seus produtos e suas fichas técnicas
             </p>
           </div>
-          <AddProductDialog onProductAdded={() => queryClient.invalidateQueries({ queryKey: ['products'] })} />
+          <AddProductDialog />
         </div>
 
         <Card>

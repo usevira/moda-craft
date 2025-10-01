@@ -98,6 +98,52 @@ export type Database = {
           },
         ]
       }
+      bill_of_materials: {
+        Row: {
+          id: string
+          material_id: string | null
+          product_id: string | null
+          quantity_required: number
+          tenant_id: string | null
+        }
+        Insert: {
+          id?: string
+          material_id?: string | null
+          product_id?: string | null
+          quantity_required: number
+          tenant_id?: string | null
+        }
+        Update: {
+          id?: string
+          material_id?: string | null
+          product_id?: string | null
+          quantity_required?: number
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_of_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_of_materials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_of_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consignments: {
         Row: {
           created_at: string | null
@@ -311,6 +357,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          base_cost: number | null
+          category: string | null
+          created_at: string | null
+          id: string
+          name: string
+          sale_price: number
+          sku: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          base_cost?: number | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          sale_price: number
+          sku?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          base_cost?: number | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          sale_price?: number
+          sku?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
