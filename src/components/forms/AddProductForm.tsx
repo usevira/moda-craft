@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -12,11 +12,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../../integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 // Schema de validação
@@ -31,17 +30,6 @@ const productSchema = z.object({
 // Componente do formulário
 export const AddProductForm = ({ setOpen }: { setOpen: (open: boolean) => void }) => {
     const queryClient = useQueryClient();
-    const [userId, setUserId] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUserId(user.id);
-            }
-        };
-        fetchUser();
-    }, []);
 
     const form = useForm<z.infer<typeof productSchema>>({
         resolver: zodResolver(productSchema),
@@ -56,12 +44,11 @@ export const AddProductForm = ({ setOpen }: { setOpen: (open: boolean) => void }
 
     const addProductMutation = useMutation({
         mutationFn: async (newProduct: z.infer<typeof productSchema>) => {
-            if (!userId) {
-                throw new Error("Utilizador não autenticado.");
-            }
+            // O tenant_id agora é definido automaticamente pelo banco de dados
+            // graças às RLS policies e ao DEFAULT get_my_tenant_id().
             const { data, error } = await (supabase as any)
                 .from("products")
-                .insert([{ ...newProduct, tenant_id: userId }])
+                .insert([newProduct])
                 .select();
             
             if (error) {
