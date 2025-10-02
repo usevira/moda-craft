@@ -7,7 +7,8 @@ import {
   Users, 
   Settings,
   BarChart3,
-  ClipboardList // Adicionado ícone para Produtos
+  ClipboardList,
+  Truck
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -26,10 +27,11 @@ import {
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Produtos", url: "/produtos", icon: ClipboardList }, // Adicionado item Produtos
+  { title: "Produtos", url: "/produtos", icon: ClipboardList },
   { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Produção", url: "/producao", icon: Factory },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
+  { title: "Consignação", url: "/consignacao", icon: Truck },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];

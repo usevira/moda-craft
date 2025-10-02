@@ -10,7 +10,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Package
+  Package,
+  Printer,
+  ClipboardList
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,10 +80,85 @@ const Producao = () => {
     }
   };
 
+  // Calcula materiais necessários para lotes pendentes
+  const { data: pendingBatchesMaterials } = useQuery({
+    queryKey: ["pendingBatchesMaterials", batches],
+    queryFn: async () => {
+      const pendingBatches = batches?.filter(
+        b => b.status === "planned" || b.status === "in_progress"
+      );
+      
+      if (!pendingBatches || pendingBatches.length === 0) return [];
+
+      const materialMap = new Map<string, { 
+        material: string; 
+        totalNeeded: number; 
+        batches: string[];
+      }>();
+
+      for (const batch of pendingBatches) {
+        if (batch.batches_materials && Array.isArray(batch.batches_materials)) {
+          batch.batches_materials.forEach((bm: any) => {
+            const materialName = bm.materials?.name || "Material desconhecido";
+            const existing = materialMap.get(materialName);
+            
+            if (existing) {
+              existing.totalNeeded += bm.qty_used || 0;
+              existing.batches.push(batch.product_name);
+            } else {
+              materialMap.set(materialName, {
+                material: materialName,
+                totalNeeded: bm.qty_used || 0,
+                batches: [batch.product_name],
+              });
+            }
+          });
+        }
+      }
+
+      return Array.from(materialMap.values());
+    },
+    enabled: !!batches,
+  });
+
   const totalBatches = batches?.length || 0;
   const completedBatches = batches?.filter(b => b.status === "completed").length || 0;
   const inProgressBatches = batches?.filter(b => b.status === "in_progress").length || 0;
   const totalCost = batches?.reduce((sum, batch) => sum + (batch.total_cost || 0), 0) || 0;
+
+  const handlePrintPending = () => {
+    const pendingBatches = batches?.filter(
+      b => b.status === "planned" || b.status === "in_progress"
+    );
+    
+    const printWindow = window.open("", "", "height=600,width=800");
+    if (!printWindow) return;
+
+    printWindow.document.write("<html><head><title>Lotes Pendentes</title>");
+    printWindow.document.write("<style>");
+    printWindow.document.write("body { font-family: Arial, sans-serif; padding: 20px; }");
+    printWindow.document.write("h1 { color: #333; }");
+    printWindow.document.write("table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
+    printWindow.document.write("th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
+    printWindow.document.write("th { background-color: #f2f2f2; }");
+    printWindow.document.write("</style></head><body>");
+    printWindow.document.write("<h1>Lotes Pendentes - Ordem de Produção</h1>");
+    printWindow.document.write("<table>");
+    printWindow.document.write("<tr><th>Lote</th><th>Produto</th><th>Quantidade</th><th>Status</th></tr>");
+    
+    pendingBatches?.forEach(batch => {
+      printWindow.document.write("<tr>");
+      printWindow.document.write(`<td>#${batch.id.slice(0, 8)}</td>`);
+      printWindow.document.write(`<td>${batch.product_name}</td>`);
+      printWindow.document.write(`<td>${batch.quantity}</td>`);
+      printWindow.document.write(`<td>${batch.status === 'planned' ? 'Planejado' : 'Em Andamento'}</td>`);
+      printWindow.document.write("</tr>");
+    });
+    
+    printWindow.document.write("</table></body></html>");
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   if (isLoading) {
     return (
@@ -165,10 +242,48 @@ const Producao = () => {
           </Card>
         </div>
 
+        {/* Ordem de Separação */}
+        {pendingBatchesMaterials && pendingBatchesMaterials.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" />
+                Ordem de Separação de Peças Lisas (Total de Lotes Pendentes)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Peça Lisa (Matéria-Prima)</TableHead>
+                    <TableHead className="text-right">Quantidade a Separar</TableHead>
+                    <TableHead>Estampa a Produzir</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingBatchesMaterials.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{item.material}</TableCell>
+                      <TableCell className="text-right font-bold">{item.totalNeeded}</TableCell>
+                      <TableCell>{item.batches.join(", ")}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Production Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lotes de Produção</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Fila de Lotes</CardTitle>
+              <Button onClick={handlePrintPending} variant="outline" size="sm">
+                <Printer className="w-4 h-4 mr-2" />
+                Imprimir Todos os Lotes Pendentes
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
