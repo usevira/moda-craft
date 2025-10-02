@@ -32,12 +32,19 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const redirectUrl = `${window.location.origin}/`;
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
+    });
     if (error) {
       setError(error.message);
     } else {
-      // Idealmente, você mostraria uma mensagem "Verifique seu email"
       alert("Cadastro realizado! Faça o login para continuar.");
+      navigate("/");
     }
     setLoading(false);
   };
