@@ -144,30 +144,65 @@ export type Database = {
           },
         ]
       }
+      consignment_items: {
+        Row: {
+          consignment_id: string
+          created_at: string | null
+          id: string
+          product_name: string
+          quantity: number
+          remaining: number
+          sold: number
+        }
+        Insert: {
+          consignment_id: string
+          created_at?: string | null
+          id?: string
+          product_name: string
+          quantity?: number
+          remaining?: number
+          sold?: number
+        }
+        Update: {
+          consignment_id?: string
+          created_at?: string | null
+          id?: string
+          product_name?: string
+          quantity?: number
+          remaining?: number
+          sold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignment_items_consignment_id_fkey"
+            columns: ["consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consignments: {
         Row: {
           created_at: string | null
           id: string
-          items: Json | null
           partner_id: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          items?: Json | null
           partner_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          items?: Json | null
           partner_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -695,6 +730,10 @@ export type Database = {
     }
     Functions: {
       get_current_tenant_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_my_tenant_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
