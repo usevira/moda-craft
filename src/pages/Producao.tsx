@@ -12,10 +12,13 @@ import {
   AlertCircle,
   Package,
   Printer,
-  ClipboardList
+  ClipboardList,
+  Play,
+  Square
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -26,6 +29,9 @@ import {
 } from "@/components/ui/table";
 
 const Producao = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
   const { data: batches, isLoading } = useQuery({
     queryKey: ["batches"],
     queryFn: async () => {
@@ -125,6 +131,127 @@ const Producao = () => {
   const completedBatches = batches?.filter(b => b.status === "completed").length || 0;
   const inProgressBatches = batches?.filter(b => b.status === "in_progress").length || 0;
   const totalCost = batches?.reduce((sum, batch) => sum + (batch.total_cost || 0), 0) || 0;
+
+  // Start production mutation
+  const startProductionMutation = useMutation({
+    mutationFn: async (batchId: string) => {
+      // Get batch materials
+      const { data: batchMaterials, error: fetchError } = await supabase
+        .from("batches_materials")
+        .select("material_id, qty_used")
+        .eq("batch_id", batchId);
+
+      if (fetchError) throw fetchError;
+
+      // Update material stock
+      for (const bm of batchMaterials || []) {
+        const { data: material } = await supabase
+          .from("materials")
+          .select("stock")
+          .eq("id", bm.material_id)
+          .single();
+
+        if (material) {
+          const { error: updateError } = await supabase
+            .from("materials")
+            .update({ stock: material.stock - bm.qty_used })
+            .eq("id", bm.material_id);
+
+          if (updateError) throw updateError;
+        }
+      }
+
+      // Update batch status
+      const { error: statusError } = await supabase
+        .from("batches")
+        .update({ status: "in_progress" })
+        .eq("id", batchId);
+
+      if (statusError) throw statusError;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Produção iniciada",
+        description: "Materiais foram baixados do estoque.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: "Erro ao iniciar produção: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Complete production mutation
+  const completeProductionMutation = useMutation({
+    mutationFn: async (batch: any) => {
+      // Update batch status
+      const { error: statusError } = await supabase
+        .from("batches")
+        .update({ status: "completed" })
+        .eq("id", batch.id);
+
+      if (statusError) throw statusError;
+
+      // Get product info
+      const { data: product } = await supabase
+        .from("products")
+        .select("id")
+        .eq("name", batch.product_name)
+        .single();
+
+      if (product) {
+        // Check if inventory entry exists
+        const { data: existingInventory } = await supabase
+          .from("inventory")
+          .select("id, quantity")
+          .eq("product_id", product.id)
+          .maybeSingle();
+
+        if (existingInventory) {
+          // Update existing inventory
+          const { error: updateError } = await supabase
+            .from("inventory")
+            .update({ 
+              quantity: existingInventory.quantity + batch.quantity,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingInventory.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Create new inventory entry
+          const { error: insertError } = await supabase
+            .from("inventory")
+            .insert([{
+              product_id: product.id,
+              quantity: batch.quantity,
+            }]);
+
+          if (insertError) throw insertError;
+        }
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Produção concluída",
+        description: "Produtos foram adicionados ao estoque.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: "Erro ao concluir produção: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handlePrintPending = () => {
     const pendingBatches = batches?.filter(
@@ -296,6 +423,7 @@ const Producao = () => {
                   <TableHead>Progresso</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Criado em</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,6 +446,32 @@ const Producao = () => {
                     <TableCell>{getStatusBadge(batch.status || 'planned')}</TableCell>
                     <TableCell>
                       {batch.created_at ? new Date(batch.created_at).toLocaleDateString('pt-BR') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {batch.status === 'planned' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startProductionMutation.mutate(batch.id)}
+                            disabled={startProductionMutation.isPending}
+                          >
+                            <Play className="w-4 h-4 mr-1" />
+                            Iniciar
+                          </Button>
+                        )}
+                        {batch.status === 'in_progress' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => completeProductionMutation.mutate(batch)}
+                            disabled={completeProductionMutation.isPending}
+                          >
+                            <Square className="w-4 h-4 mr-1" />
+                            Concluir
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
