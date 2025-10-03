@@ -20,7 +20,7 @@ interface SettleConsignmentModalProps {
 export function SettleConsignmentModal({ consignment }: SettleConsignmentModalProps) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<any[]>(
-    (consignment.items || []).map((item: any) => ({
+    (consignment.consignment_items || []).map((item: any) => ({
       ...item,
       soldNow: 0,
     }))
@@ -29,16 +29,24 @@ export function SettleConsignmentModal({ consignment }: SettleConsignmentModalPr
   const queryClient = useQueryClient();
 
   const settleConsignmentMutation = useMutation({
-    mutationFn: async (data: { id: string; items: any[]; status: string }) => {
-      const { error } = await supabase
-        .from("consignments")
-        .update({
-          items: data.items,
-          status: data.status,
-        })
-        .eq("id", data.id);
+    mutationFn: async (data: { items: any[] }) => {
+      // Update each consignment item
+      const updatePromises = data.items.map(item =>
+        supabase
+          .from("consignment_items")
+          .update({
+            sold: item.sold,
+            remaining: item.remaining,
+          })
+          .eq("id", item.id)
+      );
 
-      if (error) throw error;
+      const results = await Promise.all(updatePromises);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) {
+        throw errors[0].error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consignments"] });
@@ -70,20 +78,13 @@ export function SettleConsignmentModal({ consignment }: SettleConsignmentModalPr
     e.preventDefault();
 
     const updatedItems = items.map((item) => ({
-      ...item,
+      id: item.id,
       sold: (item.sold || 0) + (item.soldNow || 0),
       remaining: item.quantity - (item.sold || 0) - (item.soldNow || 0),
     }));
 
-    const allSettled = updatedItems.every((item) => item.remaining <= 0);
-    const anySettled = updatedItems.some((item) => item.sold > 0);
-
-    const status = allSettled ? "settled" : anySettled ? "partial" : "open";
-
     settleConsignmentMutation.mutate({
-      id: consignment.id,
       items: updatedItems,
-      status: status,
     });
   };
 
@@ -105,7 +106,7 @@ export function SettleConsignmentModal({ consignment }: SettleConsignmentModalPr
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-medium">{item.product}</p>
+                    <p className="font-medium">{item.product_name}</p>
                     <p className="text-sm text-muted-foreground">
                       Enviado: {item.quantity} | Vendido anteriormente: {item.sold || 0} | Restante: {item.remaining || item.quantity}
                     </p>

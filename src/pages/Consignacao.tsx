@@ -42,7 +42,16 @@ const Consignacao = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consignments")
-        .select("*")
+        .select(`
+          *,
+          consignment_items (
+            id,
+            product_name,
+            quantity,
+            sold,
+            remaining
+          )
+        `)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -87,8 +96,8 @@ const Consignacao = () => {
   const totalConsignments = filteredConsignments?.length || 0;
   const openConsignments = filteredConsignments?.filter(c => c.status === "open").length || 0;
   const totalItems = filteredConsignments?.reduce((sum, c) => {
-    const items = c.items as any[];
-    return sum + (Array.isArray(items) ? items.length : 0);
+    const items = c.consignment_items || [];
+    return sum + items.length;
   }, 0) || 0;
 
   const getPartnerName = (partnerId: string | null) => {
@@ -238,7 +247,7 @@ const Consignacao = () => {
               </TableHeader>
               <TableBody>
                 {filteredConsignments?.map((consignment) => {
-                  const items = (consignment.items || []) as any[];
+                  const items = (consignment.consignment_items || []) as any[];
                   return items.map((item: any, idx: number) => (
                     <TableRow key={`${consignment.id}-${idx}`}>
                       <TableCell className="font-medium">
@@ -247,7 +256,7 @@ const Consignacao = () => {
                           {getPartnerName(consignment.partner_id)}
                         </div>
                       </TableCell>
-                      <TableCell>{item.product || "N/A"}</TableCell>
+                      <TableCell>{item.product_name || "N/A"}</TableCell>
                       <TableCell className="text-right font-medium">
                         {item.remaining || 0}
                       </TableCell>

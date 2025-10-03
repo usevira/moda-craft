@@ -64,7 +64,16 @@ const Vendas = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consignments")
-        .select("*")
+        .select(`
+          *,
+          consignment_items (
+            id,
+            product_name,
+            quantity,
+            sold,
+            remaining
+          )
+        `)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -247,8 +256,8 @@ const Vendas = () => {
                     <Badge className="bg-warning/20 text-warning">Aberto</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    {consignment.items ? 
-                      `${Array.isArray(consignment.items) ? consignment.items.length : 0} itens` 
+                    {consignment.consignment_items ? 
+                      `${consignment.consignment_items.length} itens` 
                       : '0 itens'
                     }
                   </p>

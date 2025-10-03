@@ -22,17 +22,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ConsignmentItem {
-  product: string;
+  product_name: string;
   quantity: number;
-  remaining: number;
-  sold: number;
 }
 
 export function SendConsignmentModal() {
   const [open, setOpen] = useState(false);
   const [partnerId, setPartnerId] = useState("");
   const [items, setItems] = useState<ConsignmentItem[]>([
-    { product: "", quantity: 0, remaining: 0, sold: 0 },
+    { product_name: "", quantity: 0 },
   ]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,17 +68,32 @@ export function SendConsignmentModal() {
 
   const sendConsignmentMutation = useMutation({
     mutationFn: async (data: { partner_id: string; items: ConsignmentItem[] }) => {
-      const { error } = await supabase.from("consignments").insert({
-        partner_id: data.partner_id,
-        items: data.items.map(item => ({
-          ...item,
-          remaining: item.quantity,
-          sold: 0
-        })),
-        status: "open",
-      });
+      // First, insert the consignment
+      const { data: consignment, error: consignmentError } = await supabase
+        .from("consignments")
+        .insert({
+          partner_id: data.partner_id,
+          status: "open",
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (consignmentError) throw consignmentError;
+
+      // Then, insert the consignment items
+      const { error: itemsError } = await supabase
+        .from("consignment_items")
+        .insert(
+          data.items.map(item => ({
+            consignment_id: consignment.id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            sold: 0,
+            remaining: item.quantity,
+          }))
+        );
+
+      if (itemsError) throw itemsError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consignments"] });
@@ -90,7 +103,7 @@ export function SendConsignmentModal() {
       });
       setOpen(false);
       setPartnerId("");
-      setItems([{ product: "", quantity: 0, remaining: 0, sold: 0 }]);
+      setItems([{ product_name: "", quantity: 0 }]);
     },
     onError: (error) => {
       toast({
@@ -102,7 +115,7 @@ export function SendConsignmentModal() {
   });
 
   const handleAddItem = () => {
-    setItems([...items, { product: "", quantity: 0, remaining: 0, sold: 0 }]);
+    setItems([...items, { product_name: "", quantity: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -127,7 +140,7 @@ export function SendConsignmentModal() {
       return;
     }
 
-    const validItems = items.filter(item => item.product && item.quantity > 0);
+    const validItems = items.filter(item => item.product_name && item.quantity > 0);
     if (validItems.length === 0) {
       toast({
         title: "Erro",
@@ -189,8 +202,8 @@ export function SendConsignmentModal() {
                   <Label>Produto</Label>
                   <Textarea
                     placeholder="Ex: 5 Camiseta Masculina Preta M Caveira"
-                    value={item.product}
-                    onChange={(e) => handleItemChange(index, "product", e.target.value)}
+                    value={item.product_name}
+                    onChange={(e) => handleItemChange(index, "product_name", e.target.value)}
                     rows={2}
                     className="resize-none"
                   />
