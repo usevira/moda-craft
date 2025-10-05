@@ -17,6 +17,7 @@ import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 import Produtos from "./pages/Produtos";
 import Consignacao from "./pages/Consignacao";
+import PortalRevendedor from "./pages/PortalRevendedor";
 import AuthPage from "./pages/AuthPage";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/portal-revendedor" element={<PortalRevendedor />} />
             </Route>
             
             {/* Rota de fallback */}

@@ -8,7 +8,8 @@ import {
   Settings,
   BarChart3,
   ClipboardList,
-  Truck
+  Truck,
+  Store
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -39,6 +40,10 @@ const mainNavItems = [
 const managementItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
+];
+
+const resellerItems = [
+  { title: "Portal Revendedor", url: "/portal-revendedor", icon: Store },
 ];
 
 export function AppSidebar() {
@@ -86,6 +91,26 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {managementItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                   <NavLink to={item.url} end>
+                    {({ isActive }) => (
+                      <SidebarMenuButton isActive={isActive} tooltip={state === 'collapsed' ? item.title : undefined}>
+                        <item.icon className="w-4 h-4" />
+                        {state === "expanded" && <span>{item.title}</span>}
+                      </SidebarMenuButton>
+                    )}
+                  </NavLink>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Revendedor</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {resellerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                    <NavLink to={item.url} end>
                     {({ isActive }) => (
