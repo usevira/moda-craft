@@ -24,8 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RoleManagement } from "@/components/settings/RoleManagement";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Configuracoes = () => {
+  const { isAdmin } = useUserRole();
+  
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
@@ -225,35 +229,23 @@ const Configuracoes = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Usuários do Sistema ({users?.length || 0})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users?.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{user.name || 'Nome não informado'}</h4>
-                        <p className="text-sm text-muted-foreground">{user.email || 'Email não informado'}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm bg-primary/20 text-primary px-2 py-1 rounded">
-                          {user.role || 'user'}
-                        </span>
-                        <Button variant="outline" size="sm">
-                          Editar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button className="w-full">Convidar Novo Usuário</Button>
-                </div>
-              </CardContent>
-            </Card>
+            {isAdmin ? (
+              <RoleManagement />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Acesso Restrito
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Apenas administradores podem gerenciar usuários e permissões.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-6">
