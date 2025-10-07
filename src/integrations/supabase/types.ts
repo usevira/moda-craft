@@ -16,32 +16,44 @@ export type Database = {
     Tables: {
       batches: {
         Row: {
+          batch_number: string | null
           created_at: string | null
           created_by: string | null
+          expiration_date: string | null
           id: string
           product_name: string
           quantity: number
           status: string | null
+          style: Database["public"]["Enums"]["product_style"] | null
+          supplier_batch_ref: string | null
           tenant_id: string | null
           total_cost: number | null
         }
         Insert: {
+          batch_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          expiration_date?: string | null
           id?: string
           product_name: string
           quantity: number
           status?: string | null
+          style?: Database["public"]["Enums"]["product_style"] | null
+          supplier_batch_ref?: string | null
           tenant_id?: string | null
           total_cost?: number | null
         }
         Update: {
+          batch_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          expiration_date?: string | null
           id?: string
           product_name?: string
           quantity?: number
           status?: string | null
+          style?: Database["public"]["Enums"]["product_style"] | null
+          supplier_batch_ref?: string | null
           tenant_id?: string | null
           total_cost?: number | null
         }
@@ -292,29 +304,47 @@ export type Database = {
         Row: {
           color: string | null
           id: string
+          inventory_type: Database["public"]["Enums"]["inventory_type"] | null
+          location: string | null
+          max_stock: number | null
+          min_stock: number | null
           product_id: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
           quantity: number | null
           size: string | null
           tenant_id: string | null
           updated_at: string | null
+          warehouse_section: string | null
         }
         Insert: {
           color?: string | null
           id?: string
+          inventory_type?: Database["public"]["Enums"]["inventory_type"] | null
+          location?: string | null
+          max_stock?: number | null
+          min_stock?: number | null
           product_id?: string | null
+          product_style?: Database["public"]["Enums"]["product_style"] | null
           quantity?: number | null
           size?: string | null
           tenant_id?: string | null
           updated_at?: string | null
+          warehouse_section?: string | null
         }
         Update: {
           color?: string | null
           id?: string
+          inventory_type?: Database["public"]["Enums"]["inventory_type"] | null
+          location?: string | null
+          max_stock?: number | null
+          min_stock?: number | null
           product_id?: string | null
+          product_style?: Database["public"]["Enums"]["product_style"] | null
           quantity?: number | null
           size?: string | null
           tenant_id?: string | null
           updated_at?: string | null
+          warehouse_section?: string | null
         }
         Relationships: [
           {
@@ -322,6 +352,100 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          inventory_id: string | null
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes: string | null
+          product_id: string | null
+          quantity: number
+          quantity_after: number | null
+          quantity_before: number | null
+          reference_id: string | null
+          reference_type: string | null
+          tenant_id: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inventory_id?: string | null
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          product_id?: string | null
+          quantity: number
+          quantity_after?: number | null
+          quantity_before?: number | null
+          reference_id?: string | null
+          reference_type?: string | null
+          tenant_id?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          inventory_id?: string | null
+          movement_type?: Database["public"]["Enums"]["movement_type"]
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          quantity_after?: number | null
+          quantity_before?: number | null
+          reference_id?: string | null
+          reference_type?: string | null
+          tenant_id?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_finished_products_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_raw_materials_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -360,8 +484,10 @@ export type Database = {
           category: string | null
           created_at: string | null
           id: string
+          material_type: Database["public"]["Enums"]["material_type"] | null
           min_stock: number | null
           name: string
+          shirt_style: Database["public"]["Enums"]["product_style"] | null
           stock: number | null
           tenant_id: string | null
           unit: string | null
@@ -371,8 +497,10 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           id?: string
+          material_type?: Database["public"]["Enums"]["material_type"] | null
           min_stock?: number | null
           name: string
+          shirt_style?: Database["public"]["Enums"]["product_style"] | null
           stock?: number | null
           tenant_id?: string | null
           unit?: string | null
@@ -382,8 +510,10 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           id?: string
+          material_type?: Database["public"]["Enums"]["material_type"] | null
           min_stock?: number | null
           name?: string
+          shirt_style?: Database["public"]["Enums"]["product_style"] | null
           stock?: number | null
           tenant_id?: string | null
           unit?: string | null
@@ -399,6 +529,50 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          additional_cost: number | null
+          color: string
+          created_at: string | null
+          id: string
+          product_id: string | null
+          size: string
+          sku_variant: string
+          style: Database["public"]["Enums"]["product_style"]
+          tenant_id: string | null
+        }
+        Insert: {
+          additional_cost?: number | null
+          color: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          size: string
+          sku_variant: string
+          style: Database["public"]["Enums"]["product_style"]
+          tenant_id?: string | null
+        }
+        Update: {
+          additional_cost?: number | null
+          color?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          size?: string
+          sku_variant?: string
+          style?: Database["public"]["Enums"]["product_style"]
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           base_cost: number | null
@@ -408,6 +582,7 @@ export type Database = {
           name: string
           sale_price: number
           sku: string | null
+          style: Database["public"]["Enums"]["product_style"] | null
           tenant_id: string | null
         }
         Insert: {
@@ -418,6 +593,7 @@ export type Database = {
           name: string
           sale_price: number
           sku?: string | null
+          style?: Database["public"]["Enums"]["product_style"] | null
           tenant_id?: string | null
         }
         Update: {
@@ -428,6 +604,7 @@ export type Database = {
           name?: string
           sale_price?: number
           sku?: string | null
+          style?: Database["public"]["Enums"]["product_style"] | null
           tenant_id?: string | null
         }
         Relationships: [
@@ -750,9 +927,87 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_finished_products_stock: {
+        Row: {
+          color: string | null
+          id: string | null
+          location: string | null
+          min_stock: number | null
+          product_id: string | null
+          product_name: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
+          quantity: number | null
+          sale_price: number | null
+          size: string | null
+          stock_status: string | null
+          tenant_id: string | null
+          total_value: number | null
+          warehouse_section: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_low_stock_alerts: {
+        Row: {
+          color: string | null
+          id: string | null
+          inventory_type: Database["public"]["Enums"]["inventory_type"] | null
+          location: string | null
+          min_stock: number | null
+          product_name: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
+          quantity: number | null
+          size: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_raw_materials_stock: {
+        Row: {
+          color: string | null
+          id: string | null
+          location: string | null
+          min_stock: number | null
+          product_id: string | null
+          product_name: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
+          quantity: number | null
+          size: string | null
+          stock_status: string | null
+          tenant_id: string | null
+          warehouse_section: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      generate_batch_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_tenant_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -775,6 +1030,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      inventory_type: "raw_material" | "finished_product"
+      material_type: "blank_shirt" | "ink" | "packaging" | "supply"
+      movement_type:
+        | "purchase"
+        | "production"
+        | "sale"
+        | "consignment_out"
+        | "consignment_return"
+        | "adjustment"
+        | "loss"
+        | "transfer"
+      product_style: "T-Shirt" | "Oversized"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -903,6 +1170,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      inventory_type: ["raw_material", "finished_product"],
+      material_type: ["blank_shirt", "ink", "packaging", "supply"],
+      movement_type: [
+        "purchase",
+        "production",
+        "sale",
+        "consignment_out",
+        "consignment_return",
+        "adjustment",
+        "loss",
+        "transfer",
+      ],
+      product_style: ["T-Shirt", "Oversized"],
     },
   },
 } as const
