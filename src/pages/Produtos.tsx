@@ -181,12 +181,13 @@ const Produtos = () => {
             </div>
           </CardHeader>
           <CardContent>
-             <Table>
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Estilo</TableHead>
                   <TableHead className="text-right">Custo Base</TableHead>
                   <TableHead className="text-right">Preço de Venda</TableHead>
                   <TableHead>Ações</TableHead>
@@ -198,6 +199,11 @@ const Produtos = () => {
                     <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
+                    <TableCell>
+                      {product.style && (
+                        <Badge variant="outline">{product.style}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">R$ {(product.base_cost ?? 0).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-medium">R$ {(product.sale_price ?? 0).toFixed(2)}</TableCell>
                     <TableCell>

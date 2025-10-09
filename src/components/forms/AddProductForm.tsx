@@ -17,12 +17,14 @@ import { Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Schema de validação
 const productSchema = z.object({
   sku: z.string().min(1, { message: "SKU é obrigatório." }),
   name: z.string().min(1, { message: "Nome do produto é obrigatório." }),
   category: z.string().min(1, { message: "Categoria é obrigatória." }),
+  style: z.enum(["T-Shirt", "Oversized"]).optional(),
   base_cost: z.coerce.number().min(0, { message: "Custo deve ser positivo." }),
   sale_price: z.coerce.number().min(0, { message: "Preço deve ser positivo." }),
 });
@@ -37,6 +39,7 @@ export const AddProductForm = ({ setOpen }: { setOpen: (open: boolean) => void }
             sku: "",
             name: "",
             category: "",
+            style: undefined,
             base_cost: 0,
             sale_price: 0,
         },
@@ -109,6 +112,27 @@ export const AddProductForm = ({ setOpen }: { setOpen: (open: boolean) => void }
                             <FormControl>
                                 <Input placeholder="Vestuário" {...field} />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="style"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Estilo</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o estilo" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="T-Shirt">T-Shirt</SelectItem>
+                                    <SelectItem value="Oversized">Oversized</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}

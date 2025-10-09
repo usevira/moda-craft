@@ -16,6 +16,7 @@ export function AddBatchModal() {
   const { toast } = useToast();
   
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
   const [calculatedCost, setCalculatedCost] = useState<number>(0);
   const [insufficientMaterials, setInsufficientMaterials] = useState<any[]>([]);
@@ -96,6 +97,7 @@ export function AddBatchModal() {
           product_name: selectedProduct?.name || "",
           quantity,
           total_cost: calculatedCost,
+          style: (selectedStyle as "T-Shirt" | "Oversized") || null,
           status: 'planned'
         }])
         .select()
@@ -165,6 +167,19 @@ export function AddBatchModal() {
                     {product.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="style">Estilo</Label>
+            <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o estilo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="T-Shirt">T-Shirt</SelectItem>
+                <SelectItem value="Oversized">Oversized</SelectItem>
               </SelectContent>
             </Select>
           </div>
