@@ -12,8 +12,77 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  // Fetch sales data
+  const { data: salesData } = useQuery({
+    queryKey: ["dashboard-sales"],
+    queryFn: async () => {
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      
+      const { data: currentMonth } = await supabase
+        .from("sales")
+        .select("total")
+        .gte("created_at", firstDayOfMonth.toISOString());
+      
+      const { data: previousMonth } = await supabase
+        .from("sales")
+        .select("total")
+        .gte("created_at", lastMonth.toISOString())
+        .lt("created_at", firstDayOfMonth.toISOString());
+      
+      const currentTotal = currentMonth?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
+      const previousTotal = previousMonth?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
+      const change = previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal * 100).toFixed(1) : "0";
+      
+      return {
+        current: currentTotal,
+        previous: previousTotal,
+        change: parseFloat(change),
+        count: currentMonth?.length || 0
+      };
+    },
+  });
+
+  // Fetch inventory data
+  const { data: inventoryData } = useQuery({
+    queryKey: ["dashboard-inventory"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("inventory")
+        .select("quantity, min_stock");
+      
+      const total = data?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+      const lowStock = data?.filter(item => (item.quantity || 0) <= (item.min_stock || 0)).length || 0;
+      
+      return { total, lowStock };
+    },
+  });
+
+  // Fetch batches for production status
+  const { data: batchesData } = useQuery({
+    queryKey: ["dashboard-batches"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("batches")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(3);
+      
+      return data || [];
+    },
+  });
+
+  const salesTotal = salesData?.current || 0;
+  const salesChange = salesData?.change || 0;
+  const salesCount = salesData?.count || 0;
+  const inventoryTotal = inventoryData?.total || 0;
+  const lowStockCount = inventoryData?.lowStock || 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -29,35 +98,35 @@ const Index = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Vendas do Mês"
-            value="R$ 24.580"
-            change="+12.5%"
-            changeType="positive"
+            value={`R$ ${salesTotal.toFixed(2)}`}
+            change={`${salesChange >= 0 ? '+' : ''}${salesChange}%`}
+            changeType={salesChange >= 0 ? "positive" : "negative"}
             icon={DollarSign}
             description="vs mês anterior"
           />
           <MetricCard
             title="Produtos em Estoque"
-            value="1.247"
-            change="-3.2%"
-            changeType="negative"
+            value={inventoryTotal.toString()}
+            change={lowStockCount > 0 ? `${lowStockCount} baixo` : "OK"}
+            changeType={lowStockCount > 0 ? "negative" : "positive"}
             icon={Package}
             description="itens disponíveis"
           />
           <MetricCard
             title="Pedidos Este Mês"
-            value="89"
-            change="+8.7%"
-            changeType="positive"
+            value={salesCount.toString()}
+            change={salesChange >= 0 ? `+${salesChange}%` : `${salesChange}%`}
+            changeType={salesChange >= 0 ? "positive" : "negative"}
             icon={ShoppingCart}
             description="pedidos processados"
           />
           <MetricCard
-            title="Margem de Lucro"
-            value="64.2%"
-            change="+2.1%"
-            changeType="positive"
-            icon={TrendingUp}
-            description="média mensal"
+            title="Alertas"
+            value={lowStockCount.toString()}
+            change={lowStockCount > 0 ? "Atenção" : "Tudo OK"}
+            changeType={lowStockCount > 0 ? "negative" : "positive"}
+            icon={AlertTriangle}
+            description="itens em estoque baixo"
           />
         </div>
 
@@ -82,27 +151,24 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Lote #001 - Camisetas Básicas</span>
-                  <span className="text-success">100%</span>
-                </div>
-                <Progress value={100} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Lote #002 - Vestidos Verão</span>
-                  <span className="text-primary">75%</span>
-                </div>
-                <Progress value={75} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Lote #003 - Calças Jeans</span>
-                  <span className="text-muted-foreground">45%</span>
-                </div>
-                <Progress value={45} className="h-2" />
-              </div>
+              {batchesData && batchesData.length > 0 ? (
+                batchesData.map((batch) => {
+                  const progress = batch.status === 'completed' ? 100 : batch.status === 'in_progress' ? 50 : 20;
+                  return (
+                    <div key={batch.id} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>{batch.batch_number} - {batch.product_name}</span>
+                        <span className={progress === 100 ? "text-success" : "text-primary"}>
+                          {progress}%
+                        </span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum lote em produção</p>
+              )}
             </CardContent>
           </Card>
 
@@ -115,33 +181,39 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg border border-warning/20">
-                <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Estoque Baixo</p>
-                  <p className="text-xs text-muted-foreground">
-                    3 materiais com estoque crítico
-                  </p>
+              {lowStockCount > 0 && (
+                <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg border border-warning/20">
+                  <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Estoque Baixo</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lowStockCount} {lowStockCount === 1 ? 'item com' : 'itens com'} estoque crítico
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-primary-muted rounded-lg border border-primary/20">
-                <Package className="w-4 h-4 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Reposição Sugerida</p>
-                  <p className="text-xs text-muted-foreground">
-                    5 produtos com demanda alta
-                  </p>
+              )}
+              {salesChange > 0 && (
+                <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg border border-success/20">
+                  <TrendingUp className="w-4 h-4 text-success mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Vendas em Alta</p>
+                    <p className="text-xs text-muted-foreground">
+                      Crescimento de {salesChange.toFixed(1)}% vs mês anterior
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg border border-success/20">
-                <TrendingUp className="w-4 h-4 text-success mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Meta Atingida</p>
-                  <p className="text-xs text-muted-foreground">
-                    Vendas do mês superaram expectativa
-                  </p>
+              )}
+              {lowStockCount === 0 && salesChange <= 0 && (
+                <div className="flex items-start gap-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <Package className="w-4 h-4 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">Sistema OK</p>
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum alerta no momento
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -263,9 +263,9 @@ const Estoque = () => {
                       <TableHead className="text-right">Mín. Estoque</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rawMaterials?.map((item) => (
+              </TableHeader>
+              <TableBody>
+                {rawMaterials?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -306,9 +306,9 @@ const Estoque = () => {
                       <TableHead className="text-right">Preço</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {finishedProducts?.map((item) => (
+              </TableHeader>
+              <TableBody>
+                {finishedProducts?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-mono text-sm">{(item.products as any)?.sku || 'N/A'}</TableCell>
                         <TableCell className="font-medium">{(item.products as any)?.name || 'Produto não encontrado'}</TableCell>

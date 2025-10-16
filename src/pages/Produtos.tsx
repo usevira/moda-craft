@@ -51,6 +51,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { AddProductDialog } from "@/components/forms/AddProductForm";
+import { EditProductDialog } from "@/components/forms/EditProductDialog";
 
 
 const Produtos = () => {
@@ -207,10 +208,13 @@ const Produtos = () => {
                     <TableCell className="text-right">R$ {(product.base_cost ?? 0).toFixed(2)}</TableCell>
                     <TableCell className="text-right font-medium">R$ {(product.sale_price ?? 0).toFixed(2)}</TableCell>
                     <TableCell>
-                        <Button variant="outline" size="sm" onClick={() => handleOpenModal(product)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Ver/Editar Ficha Técnica
-                        </Button>
+                        <div className="flex gap-2">
+                          <EditProductDialog product={product} />
+                          <Button variant="outline" size="sm" onClick={() => handleOpenModal(product)}>
+                              <ListPlus className="w-4 h-4 mr-2" />
+                              Ficha Técnica
+                          </Button>
+                        </div>
                     </TableCell>
                   </TableRow>
                 ))}
