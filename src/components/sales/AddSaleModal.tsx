@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Textarea } from "@/components/ui/textarea";
+
+type SalesChannel = 'online' | 'wholesale' | 'event' | 'store' | 'consignment';
 
 type SaleItem = {
   variant_id: string;
@@ -25,7 +28,9 @@ export function AddSaleModal() {
   const { toast } = useToast();
   
   const [customerId, setCustomerId] = useState("");
-  const [saleType, setSaleType] = useState("direct");
+  const [channel, setChannel] = useState<SalesChannel>("store");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [notes, setNotes] = useState("");
   const [items, setItems] = useState<SaleItem[]>([]);
   
   const [selectedVariantId, setSelectedVariantId] = useState("");
@@ -118,13 +123,25 @@ export function AddSaleModal() {
     setLoading(true);
 
     try {
+      // Calculate commission rate based on channel
+      const commissionRates: Record<SalesChannel, number> = {
+        online: 5,
+        wholesale: 10,
+        event: 8,
+        store: 0,
+        consignment: 30,
+      };
+
       // Create sale
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert([{
           customer_id: customerId || null,
-          type: saleType,
+          channel,
           total,
+          commission_rate: commissionRates[channel],
+          payment_method: paymentMethod || null,
+          notes: notes || null,
         }])
         .select()
         .single();
@@ -184,6 +201,9 @@ export function AddSaleModal() {
 
       setOpen(false);
       setCustomerId("");
+      setChannel("store");
+      setPaymentMethod("");
+      setNotes("");
       setItems([]);
       window.location.reload();
     } catch (error: any) {
@@ -228,17 +248,49 @@ export function AddSaleModal() {
               </Select>
             </div>
             <div>
-              <Label>Tipo de Venda</Label>
-              <Select value={saleType} onValueChange={setSaleType}>
+              <Label>Canal de Venda</Label>
+              <Select value={channel} onValueChange={(v) => setChannel(v as SalesChannel)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="direct">Venda Direta</SelectItem>
-                  <SelectItem value="consignment">Consignação</SelectItem>
+                  <SelectItem value="store">🏪 Loja Física</SelectItem>
+                  <SelectItem value="online">🌐 Online</SelectItem>
+                  <SelectItem value="wholesale">📦 Atacado</SelectItem>
+                  <SelectItem value="event">🎪 Evento</SelectItem>
+                  <SelectItem value="consignment">🤝 Consignação</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Input
+                placeholder="Ex: Pix, Cartão, Dinheiro"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Comissão</Label>
+              <Input
+                value={`${channel === 'store' ? 0 : channel === 'online' ? 5 : channel === 'event' ? 8 : channel === 'wholesale' ? 10 : 30}%`}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Observações</Label>
+            <Textarea
+              placeholder="Observações sobre a venda (opcional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <div className="border rounded-lg p-4 space-y-4">

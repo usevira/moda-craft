@@ -81,15 +81,16 @@ const Vendas = () => {
     },
   });
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "direct":
-        return <Badge className="bg-primary/20 text-primary">Direta</Badge>;
-      case "consignment":
-        return <Badge className="bg-warning/20 text-warning">Consignação</Badge>;
-      default:
-        return <Badge variant="outline">-</Badge>;
-    }
+  const getChannelBadge = (channel: string) => {
+    const badges = {
+      store: { label: "🏪 Loja", variant: "default" as const },
+      online: { label: "🌐 Online", variant: "secondary" as const },
+      wholesale: { label: "📦 Atacado", variant: "outline" as const },
+      event: { label: "🎪 Evento", variant: "secondary" as const },
+      consignment: { label: "🤝 Consignação", variant: "outline" as const },
+    };
+    const badge = badges[channel as keyof typeof badges] || badges.store;
+    return <Badge variant={badge.variant}>{badge.label}</Badge>;
   };
 
   const totalSales = sales?.length || 0;
@@ -209,7 +210,8 @@ const Vendas = () => {
                 <TableRow>
                   <TableHead>Venda</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Tipo</TableHead>
+                  <TableHead>Canal</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Itens</TableHead>
                   <TableHead>Data</TableHead>
@@ -222,7 +224,10 @@ const Vendas = () => {
                     <TableCell className="font-medium">
                       {sale.customers?.name || "Cliente não informado"}
                     </TableCell>
-                    <TableCell>{getTypeBadge(sale.type || 'direct')}</TableCell>
+                    <TableCell>{getChannelBadge(sale.channel || 'store')}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {sale.payment_method || '-'}
+                    </TableCell>
                     <TableCell className="text-right font-medium">
                       R$ {(sale.total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>

@@ -529,6 +529,47 @@ export type Database = {
           },
         ]
       }
+      price_tables: {
+        Row: {
+          channel: Database["public"]["Enums"]["sales_channel"]
+          created_at: string | null
+          id: string
+          min_quantity: number | null
+          price: number
+          tenant_id: string | null
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["sales_channel"]
+          created_at?: string | null
+          id?: string
+          min_quantity?: number | null
+          price: number
+          tenant_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["sales_channel"]
+          created_at?: string | null
+          id?: string
+          min_quantity?: number | null
+          price?: number
+          tenant_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_tables_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           additional_cost: number | null
@@ -651,31 +692,40 @@ export type Database = {
       }
       sales: {
         Row: {
+          channel: Database["public"]["Enums"]["sales_channel"] | null
+          commission_rate: number | null
           created_at: string | null
           created_by: string | null
           customer_id: string | null
           id: string
+          notes: string | null
+          payment_method: string | null
           tenant_id: string | null
           total: number | null
-          type: string | null
         }
         Insert: {
+          channel?: Database["public"]["Enums"]["sales_channel"] | null
+          commission_rate?: number | null
           created_at?: string | null
           created_by?: string | null
           customer_id?: string | null
           id?: string
+          notes?: string | null
+          payment_method?: string | null
           tenant_id?: string | null
           total?: number | null
-          type?: string | null
         }
         Update: {
+          channel?: Database["public"]["Enums"]["sales_channel"] | null
+          commission_rate?: number | null
           created_at?: string | null
           created_by?: string | null
           customer_id?: string | null
           id?: string
+          notes?: string | null
+          payment_method?: string | null
           tenant_id?: string | null
           total?: number | null
-          type?: string | null
         }
         Relationships: [
           {
@@ -1004,18 +1054,9 @@ export type Database = {
       }
     }
     Functions: {
-      generate_batch_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_tenant_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_my_tenant_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_batch_number: { Args: never; Returns: string }
+      get_current_tenant_id: { Args: never; Returns: string }
+      get_my_tenant_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1042,6 +1083,7 @@ export type Database = {
         | "loss"
         | "transfer"
       product_style: "T-Shirt" | "Oversized"
+      sales_channel: "online" | "wholesale" | "event" | "store" | "consignment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1183,6 +1225,7 @@ export const Constants = {
         "transfer",
       ],
       product_style: ["T-Shirt", "Oversized"],
+      sales_channel: ["online", "wholesale", "event", "store", "consignment"],
     },
   },
 } as const
