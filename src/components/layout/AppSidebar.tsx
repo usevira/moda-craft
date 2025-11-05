@@ -9,7 +9,8 @@ import {
   BarChart3,
   ClipboardList,
   Truck,
-  Store
+  Store,
+  Building2
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -39,6 +40,7 @@ const mainNavItems = [
 
 const managementItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
+  { title: "Lojas", url: "/lojas", icon: Building2 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

@@ -312,6 +312,7 @@ export type Database = {
           product_style: Database["public"]["Enums"]["product_style"] | null
           quantity: number | null
           size: string | null
+          store_id: string | null
           tenant_id: string | null
           updated_at: string | null
           warehouse_section: string | null
@@ -327,6 +328,7 @@ export type Database = {
           product_style?: Database["public"]["Enums"]["product_style"] | null
           quantity?: number | null
           size?: string | null
+          store_id?: string | null
           tenant_id?: string | null
           updated_at?: string | null
           warehouse_section?: string | null
@@ -342,11 +344,19 @@ export type Database = {
           product_style?: Database["public"]["Enums"]["product_style"] | null
           quantity?: number | null
           size?: string | null
+          store_id?: string | null
           tenant_id?: string | null
           updated_at?: string | null
           warehouse_section?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -418,6 +428,13 @@ export type Database = {
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "v_finished_products_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_availability"
             referencedColumns: ["id"]
           },
           {
@@ -850,6 +867,221 @@ export type Database = {
           },
         ]
       }
+      stock_reservations: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          fulfilled_at: string | null
+          id: string
+          inventory_id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+          reserved_at: string | null
+          reserved_by: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          fulfilled_at?: string | null
+          id?: string
+          inventory_id: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          reference_type?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          inventory_id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          reserved_at?: string | null
+          reserved_by?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_finished_products_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_raw_materials_stock"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_transfers: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          from_store_id: string | null
+          id: string
+          initiated_by: string | null
+          inventory_id: string
+          notes: string | null
+          quantity: number
+          status: string | null
+          tenant_id: string
+          to_store_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          from_store_id?: string | null
+          id?: string
+          initiated_by?: string | null
+          inventory_id: string
+          notes?: string | null
+          quantity: number
+          status?: string | null
+          tenant_id?: string
+          to_store_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          from_store_id?: string | null
+          id?: string
+          initiated_by?: string | null
+          inventory_id?: string
+          notes?: string | null
+          quantity?: number
+          status?: string | null
+          tenant_id?: string
+          to_store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_transfers_from_store_id_fkey"
+            columns: ["from_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_finished_products_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_raw_materials_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_transfers_to_store_id_fkey"
+            columns: ["to_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           created_at: string | null
@@ -977,6 +1209,31 @@ export type Database = {
       }
     }
     Views: {
+      v_consolidated_inventory: {
+        Row: {
+          color: string | null
+          inventory_type: Database["public"]["Enums"]["inventory_type"] | null
+          max_stock: number | null
+          min_stock: number | null
+          product_id: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
+          size: string | null
+          stores_count: number | null
+          tenant_id: string | null
+          total_available: number | null
+          total_quantity: number | null
+          total_reserved: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_finished_products_stock: {
         Row: {
           color: string | null
@@ -995,6 +1252,44 @@ export type Database = {
           warehouse_section: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_inventory_availability: {
+        Row: {
+          available_quantity: number | null
+          color: string | null
+          id: string | null
+          inventory_type: Database["public"]["Enums"]["inventory_type"] | null
+          location: string | null
+          max_stock: number | null
+          min_stock: number | null
+          product_id: string | null
+          product_style: Database["public"]["Enums"]["product_style"] | null
+          quantity: number | null
+          reserved_quantity: number | null
+          size: string | null
+          store_code: string | null
+          store_id: string | null
+          store_name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          warehouse_section: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1054,7 +1349,9 @@ export type Database = {
       }
     }
     Functions: {
+      expire_stock_reservations: { Args: never; Returns: undefined }
       generate_batch_number: { Args: never; Returns: string }
+      get_available_stock: { Args: { p_inventory_id: string }; Returns: number }
       get_current_tenant_id: { Args: never; Returns: string }
       get_my_tenant_id: { Args: never; Returns: string }
       get_user_role: {

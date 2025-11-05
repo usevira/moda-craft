@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export const AddInventoryModal = () => {
   const [open, setOpen] = useState(false);
@@ -37,6 +38,20 @@ export const AddInventoryModal = () => {
     min_stock: 5,
     location: "",
     warehouse_section: "",
+    store_id: "",
+  });
+
+  const { data: stores } = useQuery({
+    queryKey: ["stores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,6 +70,7 @@ export const AddInventoryModal = () => {
           min_stock: formData.min_stock,
           location: formData.location || null,
           warehouse_section: formData.warehouse_section || null,
+          store_id: formData.store_id || null,
         },
       ]);
 
@@ -87,6 +103,7 @@ export const AddInventoryModal = () => {
         min_stock: 5,
         location: "",
         warehouse_section: "",
+        store_id: "",
       });
     } catch (error: any) {
       toast({
@@ -237,6 +254,28 @@ export const AddInventoryModal = () => {
                   <SelectItem value="Produtos Acabados">Produtos Acabados</SelectItem>
                   <SelectItem value="Consignação">Consignação</SelectItem>
                   <SelectItem value="Separação">Separação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="store_id">Loja</Label>
+              <Select
+                value={formData.store_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, store_id: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Estoque Central" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Estoque Central</SelectItem>
+                  {stores?.map((store) => (
+                    <SelectItem key={store.id} value={store.id}>
+                      {store.name} ({store.code})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
