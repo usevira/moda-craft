@@ -23,6 +23,9 @@ export function StockReservations() {
   const { data: reservations, isLoading } = useQuery({
     queryKey: ["stock-reservations"],
     queryFn: async () => {
+      // Expire old reservations first
+      await supabase.rpc("expire_stock_reservations");
+
       const { data, error } = await supabase
         .from("stock_reservations")
         .select(`
