@@ -1,9 +1,17 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Plus, 
   Search, 
@@ -11,7 +19,8 @@ import {
   Package,
   AlertTriangle,
   TrendingDown,
-  Shirt
+  Shirt,
+  Store
 } from "lucide-react";
 import {
   Table,
@@ -38,16 +47,39 @@ const getStatusBadge = (quantity: number | null, minStock: number | null = 5) =>
 };
 
 const Estoque = () => {
-  const { data: rawMaterials, isLoading: loadingRaw } = useQuery({
-    queryKey: ["inventory", "raw_material"],
+  const [selectedStore, setSelectedStore] = useState<string>("all");
+
+  // Fetch stores for filter
+  const { data: stores } = useQuery({
+    queryKey: ["stores"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("inventory")
-        .select(`
-          *,
-          products (*)
-        `)
+        .from("stores")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: rawMaterials, isLoading: loadingRaw } = useQuery({
+    queryKey: ["inventory", "raw_material", selectedStore],
+    queryFn: async () => {
+      // Expire old reservations first
+      await supabase.rpc("expire_stock_reservations");
+
+      let query = supabase
+        .from("v_inventory_availability")
+        .select("*")
         .eq("inventory_type", "raw_material");
+      
+      if (selectedStore !== "all") {
+        query = query.eq("store_id", selectedStore);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
@@ -55,15 +87,21 @@ const Estoque = () => {
   });
 
   const { data: finishedProducts, isLoading: loadingFinished } = useQuery({
-    queryKey: ["inventory", "finished_product"],
+    queryKey: ["inventory", "finished_product", selectedStore],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inventory")
-        .select(`
-          *,
-          products (*)
-        `)
+      // Expire old reservations first
+      await supabase.rpc("expire_stock_reservations");
+
+      let query = supabase
+        .from("v_inventory_availability")
+        .select("*")
         .eq("inventory_type", "finished_product");
+      
+      if (selectedStore !== "all") {
+        query = query.eq("store_id", selectedStore);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
@@ -73,20 +111,16 @@ const Estoque = () => {
   const isLoading = loadingRaw || loadingFinished;
   const allInventory = [...(rawMaterials || []), ...(finishedProducts || [])];
 
-  const totalItens = allInventory?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
+  const totalItens = allInventory?.reduce((acc, item) => acc + (item.available_quantity || 0), 0) || 0;
+  const totalReservado = allInventory?.reduce((acc, item) => acc + (item.reserved_quantity || 0), 0) || 0;
   const itensBaixo = allInventory?.filter(item => {
     const minStock = item.min_stock || 5;
-    return (item.quantity || 0) > 0 && (item.quantity || 0) <= minStock;
+    return (item.available_quantity || 0) > 0 && (item.available_quantity || 0) <= minStock;
   }).length || 0;
-  const itensZerados = allInventory?.filter(item => (item.quantity || 0) === 0).length || 0;
-  const valorTotal = allInventory?.reduce((acc, item) => {
-    const cost = (item.products as any)?.base_cost || 0;
-    const quantity = item.quantity || 0;
-    return acc + (quantity * cost);
-  }, 0) || 0;
+  const itensZerados = allInventory?.filter(item => (item.available_quantity || 0) === 0).length || 0;
 
-  const totalRawMaterials = rawMaterials?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
-  const totalFinished = finishedProducts?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0;
+  const totalRawMaterials = rawMaterials?.reduce((acc, item) => acc + (item.available_quantity || 0), 0) || 0;
+  const totalFinished = finishedProducts?.reduce((acc, item) => acc + (item.available_quantity || 0), 0) || 0;
 
   if (isLoading) {
     return (
@@ -124,10 +158,22 @@ const Estoque = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Itens</p>
+                  <p className="text-sm font-medium text-muted-foreground">Disponível</p>
                   <p className="text-2xl font-bold">{totalItens}</p>
                 </div>
                 <Package className="w-8 h-8 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Reservado</p>
+                  <p className="text-2xl font-bold text-warning">{totalReservado}</p>
+                </div>
+                <Package className="w-8 h-8 text-warning" />
               </div>
             </CardContent>
           </Card>
@@ -155,18 +201,6 @@ const Estoque = () => {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Valor de Custo Total</p>
-                  <p className="text-2xl font-bold">R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                <Package className="w-8 h-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Inventory Tabs */}
@@ -185,14 +219,24 @@ const Estoque = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>Inventário Completo</CardTitle>
                   <div className="flex gap-2">
+                    <Select value={selectedStore} onValueChange={setSelectedStore}>
+                      <SelectTrigger className="w-48">
+                        <Store className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Filtrar por loja" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as lojas</SelectItem>
+                        {stores?.map((store) => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input placeholder="Buscar produtos..." className="pl-10 w-64" />
                     </div>
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filtros
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -201,12 +245,14 @@ const Estoque = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tipo</TableHead>
-                      <TableHead>SKU</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead>Estilo</TableHead>
                       <TableHead>Cor/Tamanho</TableHead>
+                      <TableHead>Loja</TableHead>
                       <TableHead>Localização</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead className="text-right">Reservado</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -218,8 +264,7 @@ const Estoque = () => {
                             {item.inventory_type === 'raw_material' ? 'Matéria-Prima' : 'Produto Acabado'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{(item.products as any)?.sku || 'N/A'}</TableCell>
-                        <TableCell className="font-medium">{(item.products as any)?.name || 'Produto não encontrado'}</TableCell>
+                        <TableCell className="font-medium">{item.color}</TableCell>
                         <TableCell>
                           {item.product_style && (
                             <div className="flex items-center gap-1">
@@ -229,14 +274,23 @@ const Estoque = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{item.color}</span>
-                            <Badge variant="outline" className="text-xs">{item.size}</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{item.size}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {item.store_name ? (
+                            <div className="flex items-center gap-1">
+                              <Store className="w-3 h-3" />
+                              <span className="text-sm">{item.store_name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Central</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{item.location || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{item.quantity}</TableCell>
-                        <TableCell>{getStatusBadge(item.quantity, item.min_stock)}</TableCell>
+                        <TableCell className="text-right font-medium">{item.available_quantity}</TableCell>
+                        <TableCell className="text-right text-warning">{item.reserved_quantity}</TableCell>
+                        <TableCell className="text-right font-bold">{item.quantity}</TableCell>
+                        <TableCell>{getStatusBadge(item.available_quantity, item.min_stock)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -258,9 +312,11 @@ const Estoque = () => {
                       <TableHead>Estilo</TableHead>
                       <TableHead>Cor</TableHead>
                       <TableHead>Tamanho</TableHead>
+                      <TableHead>Loja</TableHead>
                       <TableHead>Localização</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
-                      <TableHead className="text-right">Mín. Estoque</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead className="text-right">Reservado</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
               </TableHeader>
@@ -275,10 +331,21 @@ const Estoque = () => {
                         </TableCell>
                         <TableCell>{item.color}</TableCell>
                         <TableCell><Badge variant="outline">{item.size}</Badge></TableCell>
+                        <TableCell>
+                          {item.store_name ? (
+                            <div className="flex items-center gap-1">
+                              <Store className="w-3 h-3" />
+                              <span className="text-sm">{item.store_name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Central</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{item.location || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{item.quantity}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{item.min_stock || 5}</TableCell>
-                        <TableCell>{getStatusBadge(item.quantity, item.min_stock)}</TableCell>
+                        <TableCell className="text-right font-medium">{item.available_quantity}</TableCell>
+                        <TableCell className="text-right text-warning">{item.reserved_quantity}</TableCell>
+                        <TableCell className="text-right font-bold">{item.quantity}</TableCell>
+                        <TableCell>{getStatusBadge(item.available_quantity, item.min_stock)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -297,32 +364,40 @@ const Estoque = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>SKU</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead>Estilo</TableHead>
                       <TableHead>Cor/Tamanho</TableHead>
+                      <TableHead>Loja</TableHead>
                       <TableHead>Localização</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead className="text-right">Reservado</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
               </TableHeader>
               <TableBody>
                 {finishedProducts?.map((item) => (
                       <TableRow key={item.id}>
-                        <TableCell className="font-mono text-sm">{(item.products as any)?.sku || 'N/A'}</TableCell>
-                        <TableCell className="font-medium">{(item.products as any)?.name || 'Produto não encontrado'}</TableCell>
+                        <TableCell className="font-medium">{item.color}</TableCell>
                         <TableCell>{item.product_style || '-'}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{item.color}</span>
-                            <Badge variant="outline" className="text-xs">{item.size}</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{item.size}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {item.store_name ? (
+                            <div className="flex items-center gap-1">
+                              <Store className="w-3 h-3" />
+                              <span className="text-sm">{item.store_name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Central</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{item.location || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-medium">R$ {((item.products as any)?.sale_price || 0).toFixed(2)}</TableCell>
-                        <TableCell>{getStatusBadge(item.quantity, item.min_stock)}</TableCell>
+                        <TableCell className="text-right font-medium">{item.available_quantity}</TableCell>
+                        <TableCell className="text-right text-warning">{item.reserved_quantity}</TableCell>
+                        <TableCell className="text-right font-bold">{item.quantity}</TableCell>
+                        <TableCell>{getStatusBadge(item.available_quantity, item.min_stock)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -344,7 +419,9 @@ const Estoque = () => {
                       <TableHead>Tipo</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead>Cor/Tamanho</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
+                      <TableHead>Loja</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead className="text-right">Reservado</TableHead>
                       <TableHead className="text-right">Mín. Estoque</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -353,7 +430,7 @@ const Estoque = () => {
                     {allInventory
                       ?.filter(item => {
                         const minStock = item.min_stock || 5;
-                        return (item.quantity || 0) <= minStock;
+                        return (item.available_quantity || 0) <= minStock;
                       })
                       ?.map((item) => (
                         <TableRow key={item.id}>
@@ -362,16 +439,24 @@ const Estoque = () => {
                               {item.inventory_type === 'raw_material' ? 'Matéria-Prima' : 'Produto Acabado'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-medium">{(item.products as any)?.name || 'Produto não encontrado'}</TableCell>
+                          <TableCell className="font-medium">{item.color}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{item.color}</span>
-                              <Badge variant="outline" className="text-xs">{item.size}</Badge>
-                            </div>
+                            <Badge variant="outline" className="text-xs">{item.size}</Badge>
                           </TableCell>
-                          <TableCell className="text-right font-medium">{item.quantity}</TableCell>
+                          <TableCell>
+                            {item.store_name ? (
+                              <div className="flex items-center gap-1">
+                                <Store className="w-3 h-3" />
+                                <span className="text-sm">{item.store_name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Central</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{item.available_quantity}</TableCell>
+                          <TableCell className="text-right text-warning">{item.reserved_quantity}</TableCell>
                           <TableCell className="text-right text-muted-foreground">{item.min_stock || 5}</TableCell>
-                          <TableCell>{getStatusBadge(item.quantity, item.min_stock)}</TableCell>
+                          <TableCell>{getStatusBadge(item.available_quantity, item.min_stock)}</TableCell>
                         </TableRow>
                       ))}
                   </TableBody>
