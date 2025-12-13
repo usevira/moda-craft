@@ -10,7 +10,8 @@ import {
   ClipboardList,
   Truck,
   Store,
-  Building2
+  Building2,
+  Calendar
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -34,6 +35,7 @@ const mainNavItems = [
   { title: "Produção", url: "/producao", icon: Factory },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
   { title: "Consignação", url: "/consignacao", icon: Truck },
+  { title: "Eventos", url: "/eventos", icon: Calendar },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];

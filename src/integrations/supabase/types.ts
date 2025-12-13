@@ -268,6 +268,82 @@ export type Database = {
           },
         ]
       }
+      event_stock_allocations: {
+        Row: {
+          allocated_at: string | null
+          allocated_by: string | null
+          event_id: string
+          id: string
+          inventory_id: string
+          quantity_allocated: number
+          quantity_returned: number
+          quantity_sold: number
+        }
+        Insert: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          event_id: string
+          id?: string
+          inventory_id: string
+          quantity_allocated: number
+          quantity_returned?: number
+          quantity_sold?: number
+        }
+        Update: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          event_id?: string
+          id?: string
+          inventory_id?: string
+          quantity_allocated?: number
+          quantity_returned?: number
+          quantity_sold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_stock_allocations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_stock_allocations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_stock_allocations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_finished_products_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_stock_allocations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_stock_allocations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_stock_allocations_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "v_raw_materials_stock"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string | null
@@ -299,6 +375,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      events_stock: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          id: string
+          location: string | null
+          name: string
+          notes: string | null
+          start_date: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          notes?: string | null
+          start_date: string
+          status?: string
+          tenant_id?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
       }
       inventory: {
         Row: {
@@ -1349,6 +1467,10 @@ export type Database = {
       }
     }
     Functions: {
+      allocate_stock_to_event: {
+        Args: { p_event_id: string; p_inventory_id: string; p_quantity: number }
+        Returns: string
+      }
       expire_stock_reservations: { Args: never; Returns: undefined }
       generate_batch_number: { Args: never; Returns: string }
       get_available_stock: { Args: { p_inventory_id: string }; Returns: number }
@@ -1364,6 +1486,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      return_event_stock: {
+        Args: { p_allocation_id: string; p_quantity_returned: number }
+        Returns: undefined
       }
     }
     Enums: {
