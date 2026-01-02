@@ -826,6 +826,7 @@ export type Database = {
           name: string
           sale_price: number
           sku: string | null
+          stamp_id: string | null
           style: Database["public"]["Enums"]["product_style"] | null
           tenant_id: string | null
         }
@@ -837,6 +838,7 @@ export type Database = {
           name: string
           sale_price: number
           sku?: string | null
+          stamp_id?: string | null
           style?: Database["public"]["Enums"]["product_style"] | null
           tenant_id?: string | null
         }
@@ -848,10 +850,18 @@ export type Database = {
           name?: string
           sale_price?: number
           sku?: string | null
+          stamp_id?: string | null
           style?: Database["public"]["Enums"]["product_style"] | null
           tenant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_stamp_id_fkey"
+            columns: ["stamp_id"]
+            isOneToOne: false
+            referencedRelation: "stamps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -1052,6 +1062,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stamps: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       stock_reservations: {
         Row: {

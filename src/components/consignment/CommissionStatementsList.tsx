@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle, Clock, DollarSign, Eye, Receipt } from 'lucide-react';
+import { CheckCircle, Clock, DollarSign, Eye, Receipt, Upload, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,8 @@ export function CommissionStatementsList() {
   const [selectedStatement, setSelectedStatement] = useState<any>(null);
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: statements, isLoading } = useQuery({
@@ -56,12 +58,13 @@ export function CommissionStatementsList() {
   });
 
   const payMutation = useMutation({
-    mutationFn: async ({ id, paymentDate }: { id: string; paymentDate: string }) => {
+    mutationFn: async ({ id, paymentDate, proofUrl }: { id: string; paymentDate: string; proofUrl?: string }) => {
       const { error } = await supabase
         .from('commission_statements')
         .update({
           status: 'paid',
           payment_date: paymentDate,
+          payment_proof_url: proofUrl || null,
         })
         .eq('id', id);
       if (error) throw error;
@@ -71,6 +74,7 @@ export function CommissionStatementsList() {
       queryClient.invalidateQueries({ queryKey: ['commission-statements'] });
       setPaymentDialogOpen(false);
       setSelectedStatement(null);
+      setProofFile(null);
     },
     onError: (error) => {
       toast.error('Erro ao registrar pagamento: ' + error.message);
@@ -176,6 +180,16 @@ export function CommissionStatementsList() {
                             Pagar
                           </Button>
                         )}
+                        {statement.payment_proof_url && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.open(statement.payment_proof_url, '_blank')}
+                            title="Ver comprovante"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost">
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -209,15 +223,67 @@ export function CommissionStatementsList() {
                 onChange={(e) => setPaymentDate(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Comprovante de Pagamento (opcional)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                  className="flex-1"
+                />
+                {proofFile && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setProofFile(null)}
+                  >
+                    Remover
+                  </Button>
+                )}
+              </div>
+              {proofFile && (
+                <p className="text-sm text-muted-foreground">
+                  Arquivo selecionado: {proofFile.name}
+                </p>
+              )}
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button
-                onClick={() => payMutation.mutate({ id: selectedStatement.id, paymentDate })}
-                disabled={payMutation.isPending}
+                onClick={async () => {
+                  setUploading(true);
+                  let proofUrl: string | undefined;
+                  
+                  if (proofFile) {
+                    const fileExt = proofFile.name.split('.').pop();
+                    const fileName = `${selectedStatement.id}-${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                      .from('payment-proofs')
+                      .upload(fileName, proofFile);
+                    
+                    if (uploadError) {
+                      toast.error('Erro ao enviar comprovante: ' + uploadError.message);
+                      setUploading(false);
+                      return;
+                    }
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('payment-proofs')
+                      .getPublicUrl(fileName);
+                    
+                    proofUrl = publicUrl;
+                  }
+                  
+                  payMutation.mutate({ id: selectedStatement.id, paymentDate, proofUrl });
+                  setUploading(false);
+                }}
+                disabled={payMutation.isPending || uploading}
               >
-                Confirmar Pagamento
+                {uploading ? 'Enviando...' : payMutation.isPending ? 'Salvando...' : 'Confirmar Pagamento'}
               </Button>
             </div>
           </div>
