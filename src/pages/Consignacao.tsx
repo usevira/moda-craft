@@ -4,13 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SendConsignmentModal } from "@/components/consignment/SendConsignmentModal";
 import { SettleConsignmentModal } from "@/components/consignment/SettleConsignmentModal";
+import { CreateCommissionStatementModal } from "@/components/consignment/CreateCommissionStatementModal";
+import { CommissionStatementsList } from "@/components/consignment/CommissionStatementsList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Package, 
   TrendingUp, 
   AlertCircle,
   Calendar,
   User,
-  Printer
+  Printer,
+  Receipt
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,151 +142,173 @@ const Consignacao = () => {
               Controle de produtos enviados para revendedores
             </p>
           </div>
-          <SendConsignmentModal />
+          <div className="flex gap-2">
+            <CreateCommissionStatementModal />
+            <SendConsignmentModal />
+          </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Envios</p>
-                  <p className="text-2xl font-bold">{totalConsignments}</p>
-                </div>
-                <Package className="w-8 h-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="consignments" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="consignments" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Consignações
+            </TabsTrigger>
+            <TabsTrigger value="statements" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              Prestação de Contas
+            </TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Em Consignação</p>
-                  <p className="text-2xl font-bold text-warning">{openConsignments}</p>
-                </div>
-                <AlertCircle className="w-8 h-8 text-warning" />
-              </div>
-            </CardContent>
-          </Card>
+          <TabsContent value="consignments" className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total de Envios</p>
+                      <p className="text-2xl font-bold">{totalConsignments}</p>
+                    </div>
+                    <Package className="w-8 h-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Itens</p>
-                  <p className="text-2xl font-bold text-success">{totalItems}</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Em Consignação</p>
+                      <p className="text-2xl font-bold text-warning">{openConsignments}</p>
+                    </div>
+                    <AlertCircle className="w-8 h-8 text-warning" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Consulta de Estoque Consignado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-4 mb-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Filtrar por Revendedor:</label>
-                <Select value={selectedPartner} onValueChange={setSelectedPartner}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os Revendedores" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os Revendedores</SelectItem>
-                    {customers?.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data Início:</label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data Fim:</label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2 flex items-end">
-                <Button onClick={handlePrint} variant="outline" className="w-full">
-                  <Printer className="w-4 h-4 mr-2" />
-                  Imprimir Relatório
-                </Button>
-              </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total de Itens</p>
+                      <p className="text-2xl font-bold text-success">{totalItems}</p>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-success" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Revendedor</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="text-right">Qtd. Restante</TableHead>
-                  <TableHead className="text-right">Qtd. Enviada</TableHead>
-                  <TableHead className="text-right">Qtd. Vendida</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data de Envio</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredConsignments?.map((consignment) => {
-                  const items = (consignment.consignment_items || []) as any[];
-                  return items.map((item: any, idx: number) => (
-                    <TableRow key={`${consignment.id}-${idx}`}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          {getPartnerName(consignment.partner_id)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{item.product_name || "N/A"}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {item.remaining || 0}
-                      </TableCell>
-                      <TableCell className="text-right">{item.quantity || 0}</TableCell>
-                      <TableCell className="text-right">{item.sold || 0}</TableCell>
-                      <TableCell>{getStatusBadge(consignment.status || "open")}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          {consignment.created_at
-                            ? new Date(consignment.created_at).toLocaleDateString("pt-BR")
-                            : "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {idx === 0 && consignment.status === "open" && (
-                          <SettleConsignmentModal consignment={consignment} />
-                        )}
-                      </TableCell>
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Consulta de Estoque Consignado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-4 mb-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Filtrar por Revendedor:</label>
+                    <Select value={selectedPartner} onValueChange={setSelectedPartner}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os Revendedores" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os Revendedores</SelectItem>
+                        {customers?.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Início:</label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Fim:</label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2 flex items-end">
+                    <Button onClick={handlePrint} variant="outline" className="w-full">
+                      <Printer className="w-4 h-4 mr-2" />
+                      Imprimir Relatório
+                    </Button>
+                  </div>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Revendedor</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-right">Qtd. Restante</TableHead>
+                      <TableHead className="text-right">Qtd. Enviada</TableHead>
+                      <TableHead className="text-right">Qtd. Vendida</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data de Envio</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
-                  ));
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredConsignments?.map((consignment) => {
+                      const items = (consignment.consignment_items || []) as any[];
+                      return items.map((item: any, idx: number) => (
+                        <TableRow key={`${consignment.id}-${idx}`}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              {getPartnerName(consignment.partner_id)}
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.product_name || "N/A"}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {item.remaining || 0}
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity || 0}</TableCell>
+                          <TableCell className="text-right">{item.sold || 0}</TableCell>
+                          <TableCell>{getStatusBadge(consignment.status || "open")}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              {consignment.created_at
+                                ? new Date(consignment.created_at).toLocaleDateString("pt-BR")
+                                : "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {idx === 0 && consignment.status === "open" && (
+                              <SettleConsignmentModal consignment={consignment} />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="statements">
+            <CommissionStatementsList />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
