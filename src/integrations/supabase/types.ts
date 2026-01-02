@@ -156,6 +156,74 @@ export type Database = {
           },
         ]
       }
+      commission_statements: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          commission_amount: number
+          commission_rate: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          net_amount: number
+          notes: string | null
+          payment_date: string | null
+          payment_proof_url: string | null
+          period_end: string
+          period_start: string
+          representative_id: string
+          status: string
+          tenant_id: string
+          total_sales: number
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_proof_url?: string | null
+          period_end: string
+          period_start: string
+          representative_id: string
+          status?: string
+          tenant_id?: string
+          total_sales?: number
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_proof_url?: string | null
+          period_end?: string
+          period_start?: string
+          representative_id?: string
+          status?: string
+          tenant_id?: string
+          total_sales?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_statements_representative_id_fkey"
+            columns: ["representative_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consignment_items: {
         Row: {
           consignment_id: string
