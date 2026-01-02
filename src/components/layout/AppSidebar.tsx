@@ -11,7 +11,8 @@ import {
   Truck,
   Store,
   Building2,
-  Calendar
+  Calendar,
+  Palette
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -31,6 +32,7 @@ import {
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Produtos", url: "/produtos", icon: ClipboardList },
+  { title: "Estampas", url: "/estampas", icon: Palette },
   { title: "Estoque", url: "/estoque", icon: Package },
   { title: "Produção", url: "/producao", icon: Factory },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
