@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Plus, Palette, Search, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Palette, Search, Edit, Trash2, Image as ImageIcon, LayoutGrid, List, Filter } from 'lucide-react';
 import { AddStampModal } from '@/components/stamps/AddStampModal';
 import { EditStampModal } from '@/components/stamps/EditStampModal';
 import {
@@ -30,10 +30,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Estampas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStamp, setEditingStamp] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const queryClient = useQueryClient();
 
   const { data: stamps, isLoading } = useQuery({
@@ -62,11 +73,31 @@ const Estampas = () => {
     },
   });
 
-  const filteredStamps = stamps?.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Obter categorias únicas
+  const categories = useMemo(() => {
+    if (!stamps) return [];
+    const cats = [...new Set(stamps.map(s => s.category).filter(Boolean))];
+    return cats.sort();
+  }, [stamps]);
+
+  const filteredStamps = useMemo(() => {
+    if (!stamps) return [];
+    
+    return stamps.filter((s) => {
+      const matchesSearch = 
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.category?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'all' || s.category === selectedCategory;
+      const matchesStatus = 
+        statusFilter === 'all' || 
+        (statusFilter === 'active' && s.is_active) ||
+        (statusFilter === 'inactive' && !s.is_active);
+      
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [stamps, searchTerm, selectedCategory, statusFilter]);
 
   const activeStamps = stamps?.filter((s) => s.is_active).length || 0;
   const totalStamps = stamps?.length || 0;
@@ -81,7 +112,11 @@ const Estampas = () => {
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-          <Skeleton className="h-64" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="h-64" />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -102,7 +137,7 @@ const Estampas = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -138,18 +173,49 @@ const Estampas = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Categorias</p>
+                  <p className="text-2xl font-bold">{categories.length}</p>
+                </div>
+                <Filter className="w-8 h-8 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Search and Table */}
+        {/* Filters and View Toggle */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Lista de Estampas
-            </CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Galeria de Estampas
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -159,13 +225,124 @@ const Estampas = () => {
                   className="pl-10"
                 />
               </div>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat as string}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativas</SelectItem>
+                  <SelectItem value="inactive">Inativas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Results count */}
+            <p className="text-sm text-muted-foreground mb-4">
+              Mostrando {filteredStamps.length} de {totalStamps} estampas
+            </p>
+
             {!filteredStamps?.length ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhuma estampa encontrada
-              </p>
+              <div className="text-center py-12">
+                <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhuma estampa encontrada</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tente ajustar os filtros ou adicione uma nova estampa
+                </p>
+              </div>
+            ) : viewMode === 'grid' ? (
+              /* Grid View */
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredStamps.map((stamp) => (
+                  <Card key={stamp.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
+                    <div className="aspect-square relative bg-muted">
+                      {stamp.image_url ? (
+                        <img
+                          src={stamp.image_url}
+                          alt={stamp.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Overlay with actions */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setEditingStamp(stamp)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Estampa</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a estampa "{stamp.name}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(stamp.id)}
+                                className="bg-destructive text-destructive-foreground"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                      {/* Status badge */}
+                      <div className="absolute top-2 right-2">
+                        {stamp.is_active ? (
+                          <Badge className="bg-green-600 text-white">Ativa</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inativa</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-semibold truncate" title={stamp.name}>
+                        {stamp.name}
+                      </h3>
+                      {stamp.code && (
+                        <p className="text-xs text-muted-foreground">
+                          Código: {stamp.code}
+                        </p>
+                      )}
+                      {stamp.category && (
+                        <Badge variant="outline" className="mt-2 text-xs">
+                          {stamp.category}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
+              /* Table View */
               <Table>
                 <TableHeader>
                   <TableRow>
