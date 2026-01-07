@@ -6,12 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTenantId } from "@/hooks/useTenantId";
 import { Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AddCustomerModal() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { tenantId } = useTenantId();
+  const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -21,6 +25,16 @@ export function AddCustomerModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!tenantId) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado ou sem tenant associado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -28,7 +42,7 @@ export function AddCustomerModal() {
         .from('customers')
         .insert([{
           ...formData,
-          tenant_id: '00000000-0000-0000-0000-000000000000' // Placeholder tenant
+          tenant_id: tenantId
         }]);
 
       if (error) throw error;
@@ -40,7 +54,7 @@ export function AddCustomerModal() {
 
       setOpen(false);
       setFormData({ name: "", contact: "", type: "consumer" });
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     } catch (error) {
       console.error('Error adding customer:', error);
       toast({
@@ -100,7 +114,7 @@ export function AddCustomerModal() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !tenantId}>
               {loading ? "Adicionando..." : "Adicionar Cliente"}
             </Button>
           </div>
