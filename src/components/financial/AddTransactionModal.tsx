@@ -5,34 +5,99 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { useTenantId } from "@/hooks/useTenantId";
+import { useQueryClient } from "@tanstack/react-query";
+import { Plus, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type DreCategory = "sales" | "operational_cost" | "cogs" | "";
+
+const DRE_CATEGORIES: { value: DreCategory; label: string; description: string }[] = [
+  { value: "sales", label: "Vendas", description: "Receita de vendas de produtos" },
+  { value: "operational_cost", label: "Custo Operacional", description: "Uber, Hotel, Alimentação, etc" },
+  { value: "cogs", label: "CMV - Custo Mercadoria", description: "Custo de produção/aquisição" },
+];
+
+const EXPENSE_CATEGORIES = [
+  "Transporte",
+  "Hospedagem",
+  "Alimentação",
+  "Material de Produção",
+  "Embalagens",
+  "Marketing",
+  "Taxa de Cartão",
+  "Comissão",
+  "Aluguel",
+  "Outros",
+];
 
 export function AddTransactionModal() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
+  const { tenantId } = useTenantId();
+  const queryClient = useQueryClient();
+
   const [formData, setFormData] = useState({
     type: "income",
     category: "",
-    amount: 0,
+    dre_category: "" as DreCategory,
+    cash_impact: true,
+    amount: "",
     notes: "",
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split("T")[0],
   });
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      type: "income",
+      category: "",
+      dre_category: "",
+      cash_impact: true,
+      amount: "",
+      notes: "",
+      date: new Date().toISOString().split("T")[0],
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!tenantId) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado ou sem tenant associado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .insert([{
-          ...formData,
-          tenant_id: '00000000-0000-0000-0000-000000000000' // Placeholder tenant
-        }]);
+      // Parse amount with precision
+      const amount = Math.round(parseFloat(formData.amount.replace(",", ".")) * 100) / 100;
+
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error("Valor inválido");
+      }
+
+      const { error } = await supabase.from("transactions").insert([
+        {
+          type: formData.type,
+          category: formData.category,
+          dre_category: formData.dre_category || null,
+          cash_impact: formData.cash_impact,
+          amount,
+          notes: formData.notes || null,
+          date: formData.date,
+          tenant_id: tenantId,
+        },
+      ]);
 
       if (error) throw error;
 
@@ -42,18 +107,29 @@ export function AddTransactionModal() {
       });
 
       setOpen(false);
-      setFormData({ type: "income", category: "", amount: 0, notes: "", date: new Date().toISOString().split('T')[0] });
-      window.location.reload();
-    } catch (error) {
-      console.error('Error adding transaction:', error);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dre-transactions"] });
+    } catch (error: any) {
+      console.error("Error adding transaction:", error);
       toast({
         title: "Erro",
-        description: "Erro ao registrar transação.",
+        description: error.message || "Erro ao registrar transação.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  // Auto-set DRE category based on type
+  const handleTypeChange = (type: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      type,
+      dre_category: type === "income" ? "sales" : "operational_cost",
+      category: "",
+    }));
   };
 
   return (
@@ -64,67 +140,159 @@ export function AddTransactionModal() {
           Nova Transação
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Registrar Nova Transação</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Registrar Nova Transação
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Tipo */}
           <div>
             <Label htmlFor="type">Tipo</Label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+            <Select value={formData.type} onValueChange={handleTypeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="income">Receita</SelectItem>
-                <SelectItem value="expense">Despesa</SelectItem>
+                <SelectItem value="income">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    Receita
+                  </div>
+                </SelectItem>
+                <SelectItem value="expense">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-4 w-4 text-destructive" />
+                    Despesa
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {/* Categoria DRE */}
+          <div>
+            <Label htmlFor="dre_category">Classificação DRE</Label>
+            <Select
+              value={formData.dre_category}
+              onValueChange={(value) => setFormData({ ...formData, dre_category: value as DreCategory })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a classificação" />
+              </SelectTrigger>
+              <SelectContent>
+                {DRE_CATEGORIES.filter((cat) =>
+                  formData.type === "income" ? cat.value === "sales" : cat.value !== "sales"
+                ).map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    <div>
+                      <span>{cat.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({cat.description})</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Categoria descritiva */}
           <div>
             <Label htmlFor="category">Categoria</Label>
-            <Input
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-              required
-            />
+            {formData.type === "expense" ? (
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="Ex: Venda Online, Venda Evento..."
+                required
+              />
+            )}
           </div>
+
+          {/* Impacto no Caixa */}
+          {formData.type === "expense" && (
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <Label htmlFor="cash_impact" className="cursor-pointer">
+                  Impacto no Caixa
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Desmarque se for um custo não-monetário (ex: depreciação)
+                </p>
+              </div>
+              <Switch
+                id="cash_impact"
+                checked={formData.cash_impact}
+                onCheckedChange={(checked) => setFormData({ ...formData, cash_impact: checked })}
+              />
+            </div>
+          )}
+
+          {/* Valor */}
           <div>
-            <Label htmlFor="amount">Valor</Label>
+            <Label htmlFor="amount">Valor (R$)</Label>
             <Input
               id="amount"
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
               value={formData.amount}
-              onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               required
             />
           </div>
+
+          {/* Data */}
           <div>
             <Label htmlFor="date">Data</Label>
             <Input
               id="date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({...formData, date: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
             />
           </div>
+
+          {/* Observações */}
           <div>
             <Label htmlFor="notes">Observações</Label>
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Observações adicionais..."
             />
           </div>
+
+          {/* Dica sobre DRE */}
+          <Alert>
+            <AlertDescription className="text-xs">
+              💡 A classificação DRE permite gerar relatórios financeiros precisos. Use "Custo Operacional" para
+              despesas como transporte e hospedagem, e "CMV" para custos de produção.
+            </AlertDescription>
+          </Alert>
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !tenantId}>
               {loading ? "Registrando..." : "Registrar"}
             </Button>
           </div>

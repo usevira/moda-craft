@@ -233,6 +233,8 @@ export type Database = {
           quantity: number
           remaining: number
           sold: number
+          unit_price: number | null
+          used_as_payment: number | null
         }
         Insert: {
           consignment_id: string
@@ -242,6 +244,8 @@ export type Database = {
           quantity?: number
           remaining?: number
           sold?: number
+          unit_price?: number | null
+          used_as_payment?: number | null
         }
         Update: {
           consignment_id?: string
@@ -251,6 +255,8 @@ export type Database = {
           quantity?: number
           remaining?: number
           sold?: number
+          unit_price?: number | null
+          used_as_payment?: number | null
         }
         Relationships: [
           {
@@ -267,21 +273,27 @@ export type Database = {
           created_at: string | null
           id: string
           partner_id: string | null
+          payment_type: string | null
           status: string | null
+          stock_payment_value: number | null
           tenant_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           partner_id?: string | null
+          payment_type?: string | null
           status?: string | null
+          stock_payment_value?: number | null
           tenant_id?: string
         }
         Update: {
           created_at?: string | null
           id?: string
           partner_id?: string | null
+          payment_type?: string | null
           status?: string | null
+          stock_payment_value?: number | null
           tenant_id?: string
         }
         Relationships: [
@@ -340,32 +352,47 @@ export type Database = {
         Row: {
           allocated_at: string | null
           allocated_by: string | null
+          counted_return: number | null
+          divergence: number | null
+          divergence_notes: string | null
           event_id: string
           id: string
           inventory_id: string
           quantity_allocated: number
           quantity_returned: number
           quantity_sold: number
+          return_confirmed_at: string | null
+          return_confirmed_by: string | null
         }
         Insert: {
           allocated_at?: string | null
           allocated_by?: string | null
+          counted_return?: number | null
+          divergence?: number | null
+          divergence_notes?: string | null
           event_id: string
           id?: string
           inventory_id: string
           quantity_allocated: number
           quantity_returned?: number
           quantity_sold?: number
+          return_confirmed_at?: string | null
+          return_confirmed_by?: string | null
         }
         Update: {
           allocated_at?: string | null
           allocated_by?: string | null
+          counted_return?: number | null
+          divergence?: number | null
+          divergence_notes?: string | null
           event_id?: string
           id?: string
           inventory_id?: string
           quantity_allocated?: number
           quantity_returned?: number
           quantity_sold?: number
+          return_confirmed_at?: string | null
+          return_confirmed_by?: string | null
         }
         Relationships: [
           {
@@ -1338,8 +1365,10 @@ export type Database = {
       transactions: {
         Row: {
           amount: number | null
+          cash_impact: boolean | null
           category: string | null
           date: string | null
+          dre_category: string | null
           id: string
           notes: string | null
           related_sale_id: string | null
@@ -1348,8 +1377,10 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          cash_impact?: boolean | null
           category?: string | null
           date?: string | null
+          dre_category?: string | null
           id?: string
           notes?: string | null
           related_sale_id?: string | null
@@ -1358,8 +1389,10 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          cash_impact?: boolean | null
           category?: string | null
           date?: string | null
+          dre_category?: string | null
           id?: string
           notes?: string | null
           related_sale_id?: string | null

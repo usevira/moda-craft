@@ -12,7 +12,8 @@ import {
   Store,
   Building2,
   Calendar,
-  Palette
+  Palette,
+  FileSpreadsheet
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -39,6 +40,7 @@ const mainNavItems = [
   { title: "Consignação", url: "/consignacao", icon: Truck },
   { title: "Eventos", url: "/eventos", icon: Calendar },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "DRE", url: "/relatorio-dre", icon: FileSpreadsheet },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
