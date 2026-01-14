@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, MapPin, Plus, Package, RotateCcw, ShoppingCart } from "lucide-react";
+import { Calendar, MapPin, Plus, Package, RotateCcw, ShoppingCart, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,6 +14,7 @@ import { AddEventModal } from "@/components/events/AddEventModal";
 import { AllocateStockModal } from "@/components/events/AllocateStockModal";
 import { ReturnStockModal } from "@/components/events/ReturnStockModal";
 import { RegisterEventSaleModal } from "@/components/events/RegisterEventSaleModal";
+import { EventProfitDashboard } from "@/components/events/EventProfitDashboard";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   planned: { label: "Planejado", variant: "secondary" },
@@ -141,13 +142,21 @@ export default function Eventos() {
           </Card>
         </div>
 
-        <Tabs defaultValue="active" className="space-y-4">
+        <Tabs defaultValue="profit" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="profit" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Lucro Real
+            </TabsTrigger>
             <TabsTrigger value="active">Ativos ({activeEvents.length})</TabsTrigger>
             <TabsTrigger value="planned">Planejados ({plannedEvents.length})</TabsTrigger>
             <TabsTrigger value="completed">Finalizados ({completedEvents.length})</TabsTrigger>
             <TabsTrigger value="allocations">Alocações</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="profit" className="space-y-4">
+            <EventProfitDashboard />
+          </TabsContent>
 
           <TabsContent value="active" className="space-y-4">
             <EventsTable 
