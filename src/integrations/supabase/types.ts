@@ -1369,6 +1369,7 @@ export type Database = {
           category: string | null
           date: string | null
           dre_category: string | null
+          event_id: string | null
           id: string
           notes: string | null
           related_sale_id: string | null
@@ -1381,6 +1382,7 @@ export type Database = {
           category?: string | null
           date?: string | null
           dre_category?: string | null
+          event_id?: string | null
           id?: string
           notes?: string | null
           related_sale_id?: string | null
@@ -1393,6 +1395,7 @@ export type Database = {
           category?: string | null
           date?: string | null
           dre_category?: string | null
+          event_id?: string | null
           id?: string
           notes?: string | null
           related_sale_id?: string | null
@@ -1400,6 +1403,13 @@ export type Database = {
           type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_stock"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_related_sale_id_fkey"
             columns: ["related_sale_id"]

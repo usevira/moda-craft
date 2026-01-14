@@ -9,8 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTenantId } from "@/hooks/useTenantId";
-import { useQueryClient } from "@tanstack/react-query";
-import { Plus, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type DreCategory = "sales" | "operational_cost" | "cogs" | "";
@@ -41,6 +41,19 @@ export function AddTransactionModal() {
   const { tenantId } = useTenantId();
   const queryClient = useQueryClient();
 
+  // Buscar eventos para vincular transação
+  const { data: events } = useQuery({
+    queryKey: ["events_stock_list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events_stock")
+        .select("id, name, start_date, status")
+        .order("start_date", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const [formData, setFormData] = useState({
     type: "income",
     category: "",
@@ -49,6 +62,7 @@ export function AddTransactionModal() {
     amount: "",
     notes: "",
     date: new Date().toISOString().split("T")[0],
+    event_id: "" as string,
   });
 
   // Reset form
@@ -61,6 +75,7 @@ export function AddTransactionModal() {
       amount: "",
       notes: "",
       date: new Date().toISOString().split("T")[0],
+      event_id: "",
     });
   };
 
@@ -96,6 +111,7 @@ export function AddTransactionModal() {
           notes: formData.notes || null,
           date: formData.date,
           tenant_id: tenantId,
+          event_id: formData.event_id || null,
         },
       ]);
 
@@ -110,6 +126,7 @@ export function AddTransactionModal() {
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dre-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["event-transactions"] });
     } catch (error: any) {
       console.error("Error adding transaction:", error);
       toast({
@@ -255,6 +272,36 @@ export function AddTransactionModal() {
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               required
             />
+          </div>
+
+          {/* Evento vinculado */}
+          <div>
+            <Label htmlFor="event_id">Vincular a Evento (opcional)</Label>
+            <Select
+              value={formData.event_id}
+              onValueChange={(value) => setFormData({ ...formData, event_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um evento (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sem vínculo</SelectItem>
+                {events?.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3" />
+                      {event.name}
+                      <span className="text-xs text-muted-foreground">
+                        ({event.status === "active" ? "Ativo" : event.status === "completed" ? "Concluído" : "Planejado"})
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Vincule para calcular o lucro real do evento
+            </p>
           </div>
 
           {/* Data */}
