@@ -22,6 +22,7 @@ export function AddEventModal({ open, onOpenChange, onSuccess }: AddEventModalPr
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("planned");
   const [notes, setNotes] = useState("");
+  const [salesGoal, setSalesGoal] = useState("");
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +41,7 @@ export function AddEventModal({ open, onOpenChange, onSuccess }: AddEventModalPr
         end_date: endDate || null,
         status,
         notes: notes.trim() || null,
+        sales_goal: salesGoal ? parseFloat(salesGoal) : 0,
       });
 
       if (error) throw error;
@@ -62,6 +64,7 @@ export function AddEventModal({ open, onOpenChange, onSuccess }: AddEventModalPr
     setEndDate("");
     setStatus("planned");
     setNotes("");
+    setSalesGoal("");
   };
 
   return (
@@ -122,6 +125,18 @@ export function AddEventModal({ open, onOpenChange, onSuccess }: AddEventModalPr
                 <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="salesGoal">Meta de Vendas (R$)</Label>
+            <Input
+              id="salesGoal"
+              type="number"
+              step="0.01"
+              min="0"
+              value={salesGoal}
+              onChange={(e) => setSalesGoal(e.target.value)}
+              placeholder="Ex: 5000.00"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>

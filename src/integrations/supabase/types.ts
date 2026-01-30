@@ -481,6 +481,7 @@ export type Database = {
           location: string | null
           name: string
           notes: string | null
+          sales_goal: number | null
           start_date: string
           status: string
           tenant_id: string
@@ -494,6 +495,7 @@ export type Database = {
           location?: string | null
           name: string
           notes?: string | null
+          sales_goal?: number | null
           start_date: string
           status?: string
           tenant_id?: string
@@ -507,6 +509,7 @@ export type Database = {
           location?: string | null
           name?: string
           notes?: string | null
+          sales_goal?: number | null
           start_date?: string
           status?: string
           tenant_id?: string
