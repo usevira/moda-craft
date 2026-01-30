@@ -2,6 +2,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { EventsOverview } from "@/components/dashboard/EventsOverview";
+import { DivergenceAlerts } from "@/components/dashboard/DivergenceAlerts";
 import { 
   DollarSign, 
   Package, 
@@ -137,6 +139,16 @@ const Index = () => {
           </div>
           <div className="lg:col-span-3">
             <RecentActivity />
+          </div>
+        </div>
+
+        {/* Events Overview and Divergence Alerts */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <EventsOverview />
+          </div>
+          <div className="lg:col-span-1">
+            <DivergenceAlerts />
           </div>
         </div>
 
